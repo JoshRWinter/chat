@@ -24,16 +24,14 @@ void Server::accept(){
 	if(connector!=-1){
 		// yay someone connected
 		new_client(connector);
-		std::cout<<"someone connected"<<std::endl;
 	}
 
 	// remove dead clients from client_list
-	for(std::vector<std::unique_ptr<Client>>::iterator it=client_list.begin();it!=client_list.end();){
-		std::unique_ptr<Client> &client = *it;
+	for(auto it=client_list.begin();it!=client_list.end();){
+		auto &client = *it;
 
 		if(client->dead()){
 			client->get_thread().join();
-			std::cout<<client->get_name()<<" disconnected"<<std::endl;
 			it=client_list.erase(it);
 			continue;
 		}

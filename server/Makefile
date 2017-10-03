@@ -3,7 +3,7 @@ LFLAGS := -pthread
 COMPILER := g++
 REMOVE := rm
 
-OBJECTS := ../network.o main.o Server.o Client.o
+OBJECTS := ../network.o log.o main.o Server.o Client.o Command.o
 
 mchat-server: $(OBJECTS)
 	$(COMPILER) -o $@ $(OBJECTS) $(LFLAGS)

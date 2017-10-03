@@ -7,6 +7,7 @@
 
 #include "../mchat.h"
 #include "Server.h"
+#include "log.h"
 
 static std::atomic<bool> running;
 void handler(int);
@@ -36,7 +37,7 @@ int main(int argc, char **argv){
 		}
 	}
 
-	std::cout<<"\nexiting..."<<std::endl;
+	std::cout<<"exiting..."<<std::endl;
 
 	return 0;
 }
@@ -46,6 +47,7 @@ void handler(int sig){
 	case SIGTERM:
 	case SIGINT:
 		running.store(false);
+		log("");
 		break;
 	case SIGPIPE:
 		break;

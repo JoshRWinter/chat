@@ -4,12 +4,27 @@
 #include <string>
 #include <atomic>
 #include <thread>
+#include <ctime>
 
 class Client;
 class Server;
 
 #include "../network.h"
 #include "Server.h"
+
+#define HEARTBEAT_FREQUENCY 15
+
+struct NetworkException{
+	virtual const char *what()const{
+		return "network error";
+	}
+};
+
+struct ShutdownException{
+	virtual const char *what()const{
+		return "need to shut down";
+	}
+};
 
 class Client{
 public:
@@ -20,10 +35,13 @@ public:
 	std::thread &get_thread();
 	const std::string &get_name()const;
 	bool dead()const;
+	void send(const void*,unsigned);
+	void recv(void*,unsigned);
 
 private:
-	bool send(const void*,unsigned);
-	bool recv(void*,unsigned);
+	void get_info();
+	void loop();
+	void heartbeat();
 	void disconnect();
 
 	const Server &parent;
@@ -31,6 +49,7 @@ private:
 	std::thread thread;
 	std::string name;
 	net::tcp tcp;
+	time_t last_heartbeat;
 };
 
 #endif // CLIENT_H
