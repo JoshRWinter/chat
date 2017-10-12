@@ -5,7 +5,7 @@
 
 #include <signal.h>
 
-#include "../mchat.h"
+#include "../chat.h"
 #include "Server.h"
 #include "log.h"
 

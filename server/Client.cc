@@ -4,12 +4,16 @@
 
 #include "Client.h"
 #include "Command.h"
+#include "../chat.h"
 #include "log.h"
 
-Client::Client(const Server &p,int sockfd):parent(p),tcp(sockfd),thread(std::ref(*this)){
-	disconnected.store(false);
-	last_heartbeat=0;
-}
+Client::Client(const Server &p,int sockfd):
+	parent(p),
+	tcp(sockfd),
+	disconnected(false),
+	last_heartbeat(0),
+	thread(std::ref(*this)) // start a separate event thread for this client (operator())
+{}
 
 std::thread &Client::get_thread(){
 	return thread;
@@ -20,12 +24,12 @@ const std::string &Client::get_name()const{
 }
 
 bool Client::dead()const{
-	return disconnected;
+	return disconnected.load();
 }
 
 void Client::operator()(){
 	try{
-		get_info();
+		setup();
 		loop();
 	}catch(const NetworkException &e){
 		log(name + " has disconnected");
@@ -62,7 +66,7 @@ void Client::recv(void *data,unsigned size){
 	}
 }
 
-void Client::get_info(){
+void Client::setup(){
 	// get the name length
 	std::uint32_t size;
 	recv(&size,sizeof(size));
@@ -81,7 +85,23 @@ void Client::loop(){
 		if(!parent.running())
 			throw ShutdownException();
 
-		Client::heartbeat();
+		heartbeat();
+
+		recv_command();
+	}
+}
+
+void Client::recv_command(){
+	if(tcp.peek()<sizeof(ClientCommand))
+		return;
+
+	ClientCommand type;
+	recv(&type,sizeof(type));
+
+	switch(type){
+	case ClientCommand::MESSAGE:
+		log(Command::recv_message(*this));
+		break;
 	}
 }
 
@@ -92,7 +112,7 @@ void Client::heartbeat(){
 		last_heartbeat=0;
 
 	if(current-last_heartbeat>HEARTBEAT_FREQUENCY)
-		Command::heartbeat(*this);
+		Command::send_heartbeat(*this);
 }
 
 void Client::disconnect(){

@@ -39,8 +39,9 @@ public:
 	void recv(void*,unsigned);
 
 private:
-	void get_info();
+	void setup();
 	void loop();
+	void recv_command();
 	void heartbeat();
 	void disconnect();
 

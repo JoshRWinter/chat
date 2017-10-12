@@ -4,7 +4,8 @@
 #include "Client.h"
 
 namespace Command{
-	void heartbeat(Client&);
+	void send_heartbeat(Client&);
+	std::string recv_message(Client&);
 }
 
 #endif // COMMAND_H
