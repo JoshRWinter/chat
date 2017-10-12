@@ -22,7 +22,7 @@ int main(int argc, char **argv){
 		const int port=CHAT_PORT;
 		Server server(port);
 		if(!server){
-			std::cerr<<"error: could not bind to port "<<CHAT_PORT<<"!"<<std::endl;
+			std::cerr<<"\033[31;1merror:\033[0m could not bind to port "<<CHAT_PORT<<"!"<<std::endl;
 			if(port<=1024)
 				std::cerr<<"also make sure you have permission to bind to this port."<<std::endl;
 			return 1;
