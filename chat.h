@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#define MCHAT_PORT 28859
+#define CHAT_PORT 28859
 
 enum class ServerCommand:std::uint8_t{
 	HEARTBEAT

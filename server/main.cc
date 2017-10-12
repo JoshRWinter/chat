@@ -19,10 +19,10 @@ int main(int argc, char **argv){
 	signal(SIGPIPE,handler);
 
 	{
-		const int port=MCHAT_PORT;
+		const int port=CHAT_PORT;
 		Server server(port);
 		if(!server){
-			std::cerr<<"error: could not bind to port "<<MCHAT_PORT<<"!"<<std::endl;
+			std::cerr<<"error: could not bind to port "<<CHAT_PORT<<"!"<<std::endl;
 			if(port<=1024)
 				std::cerr<<"also make sure you have permission to bind to this port."<<std::endl;
 			return 1;
