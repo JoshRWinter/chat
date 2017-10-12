@@ -1,6 +1,6 @@
 .*.swp
 *.o
-client/mchat
-server/mchat-server
+client/chat
+server/chat-server
 vgcore*
 
