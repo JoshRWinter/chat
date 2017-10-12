@@ -2,4 +2,5 @@
 *.o
 client/mchat
 server/mchat-server
+vgcore*
 
