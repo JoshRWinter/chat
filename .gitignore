@@ -2,5 +2,6 @@
 *.o
 client/chat
 server/chat-server
+server/chatdb
 vgcore*
 

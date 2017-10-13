@@ -2,8 +2,10 @@
 
 #include "Server.h"
 
-Server::Server(unsigned short port):tcp(port){
+Server::Server(unsigned short port,const std::string &dbname):tcp(port),db(dbname){
 	good.store(true);
+	if(!tcp)
+		throw ServerException(std::string("can't bind to port ")+std::to_string(port));
 }
 
 Server::~Server(){
@@ -12,10 +14,6 @@ Server::~Server(){
 	// join all the client threads
 	for(std::unique_ptr<Client> &client:client_list)
 		client->get_thread().join();
-}
-
-bool Server::operator!()const{
-	return !tcp;
 }
 
 void Server::accept(){

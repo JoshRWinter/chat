@@ -13,4 +13,14 @@ enum class ClientCommand:std::uint8_t{
 	MESSAGE
 };
 
+struct Chat{
+	Chat(int i,const std::string &n,const std::string &c,const std::string &d)
+	:id(i),name(n),creator(c),description(d){}
+
+	const int id;
+	const std::string name;
+	const std::string creator;
+	const std::string description;
+};
+
 #endif // MCHAT_H
