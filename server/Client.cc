@@ -27,9 +27,10 @@ bool Client::dead()const{
 	return disconnected.load();
 }
 
+// entry point for the client thread
 void Client::operator()(){
 	try{
-		setup();
+		name=Command::recv_name(*this);
 		loop();
 	}catch(const NetworkException &e){
 		log(name + " has disconnected");
@@ -38,6 +39,7 @@ void Client::operator()(){
 	}
 }
 
+// send network data
 void Client::send(const void *data,unsigned size){
 	unsigned sent=0;
 	while(sent!=size){
@@ -52,6 +54,7 @@ void Client::send(const void *data,unsigned size){
 	}
 }
 
+// recv network data
 void Client::recv(void *data,unsigned size){
 	int got=0;
 	while(got!=size){
@@ -66,20 +69,7 @@ void Client::recv(void *data,unsigned size){
 	}
 }
 
-void Client::setup(){
-	// get the name length
-	std::uint32_t size;
-	recv(&size,sizeof(size));
-
-	//get the name
-	std::vector<char> data(size+1);
-	recv(&data[0],size);
-	data[size]=0;
-	name=&data[0];
-
-	log(name + " has joined the chat");
-}
-
+// main processing loop for client
 void Client::loop(){
 	for(;;){
 		if(!parent.running())
@@ -91,6 +81,7 @@ void Client::loop(){
 	}
 }
 
+// recv commands from the client
 void Client::recv_command(){
 	if(tcp.peek()<sizeof(ClientCommand))
 		return;
@@ -102,9 +93,15 @@ void Client::recv_command(){
 	case ClientCommand::MESSAGE:
 		log(Command::recv_message(*this));
 		break;
+	case ClientCommand::SUBSCRIBE:
+		break;
+	case ClientCommand::NEW_CHAT:
+		Command::recv_newchat(*this);
+		break;
 	}
 }
 
+// send a heartbeat to the client
 void Client::heartbeat(){
 	time_t current=time(NULL);
 

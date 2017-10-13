@@ -28,13 +28,13 @@ public:
 	explicit Database(const std::string&);
 	Database(const Database&)=delete;
 	~Database();
-	Database &operator=(const Database)=delete;
+	Database &operator=(const Database&)=delete;
 	std::vector<Chat> get_chats();
+	void new_chat(const Chat&);
 
 private:
 	bool exists(const std::string&)const;
 
-	std::mutex mutex;
 	sqlite3 *conn;
 };
 

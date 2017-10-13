@@ -1,5 +1,4 @@
 #include <fstream>
-#include <iostream>
 
 #include "Database.h"
 
@@ -19,7 +18,7 @@ Database::Database(const std::string &fname){
 		"id integer primary key autoincrement,\n"
 		"name varchar(255) not null,\n"
 		"creator varchar(255) not null,\n"
-		"description varchar(511)\n"
+		"description varchar(511) not null\n"
 		");";
 
 		char *err;
@@ -29,20 +28,14 @@ Database::Database(const std::string &fname){
 			throw DatabaseException(msg);
 		}
 	}
-
-	std::vector<Chat> chats=get_chats();
-	for(Chat &chat:chats){
-		std::cout<<"id: "<<chat.id<<", name: "<<chat.name<<", creator: "<<chat.creator<<", desc: "<<chat.description<<std::endl;
-	}
 }
 
 Database::~Database(){
 	sqlite3_close(conn);
 }
 
+// return a vector of all the chats currently registered in the database
 std::vector<Chat> Database::get_chats(){
-	std::lock_guard<std::mutex> lock(mutex);
-
 	const char *query=
 	"select * from chats;";
 	std::vector<Chat> chats;
@@ -51,18 +44,39 @@ std::vector<Chat> Database::get_chats(){
 	sqlite3_prepare_v2(conn,query,-1,&statement,NULL);
 
 	while(sqlite3_step(statement)!=SQLITE_DONE){
-		int id=sqlite3_column_int(statement,0);
-		const std::string name=(char*)sqlite3_column_text(statement,1);
-		const std::string creator=(char*)sqlite3_column_text(statement,2);
-		const char *desc=(char*)sqlite3_column_text(statement,3);
-		const std::string description(desc==NULL?"":desc);
-
-		chats.push_back({id,name,creator,description});
+		chats.push_back({
+			sqlite3_column_int(statement,0),
+			(char*)sqlite3_column_text(statement,1),
+			(char*)sqlite3_column_text(statement,2),
+			(char*)sqlite3_column_text(statement,3),
+		});
 	}
+
+	sqlite3_finalize(statement);
 
 	return chats;
 }
 
+// register a new chat to the database
+void Database::new_chat(const Chat &chat){
+	const char *sqlstatement=
+	"insert into chats(name,creator,description) values\n"
+	"(?,?,?)";
+
+	sqlite3_stmt *statement;
+	sqlite3_prepare_v2(conn,sqlstatement,-1,&statement,NULL);
+
+	sqlite3_bind_text(statement,1,chat.name.c_str(),-1,SQLITE_TRANSIENT);
+	sqlite3_bind_text(statement,2,chat.creator.c_str(),-1,SQLITE_TRANSIENT);
+	sqlite3_bind_text(statement,3,chat.description.c_str(),-1,SQLITE_TRANSIENT);
+
+	if(sqlite3_step(statement)!=SQLITE_DONE)
+		throw DatabaseException("couldn't add new chat to database");
+
+	sqlite3_finalize(statement);
+}
+
+// return true if the database exists and does not need to be created
 bool Database::exists(const std::string &fname)const{
 	std::ifstream file(fname);
 	return !!file;

@@ -1,5 +1,6 @@
-#include <iostream>
+#include <string>
 
+#include "log.h"
 #include "Server.h"
 
 Server::Server(unsigned short port,const std::string &dbname):tcp(port),db(dbname){
@@ -35,6 +36,21 @@ void Server::accept(){
 		}
 
 		++it;
+	}
+}
+
+std::vector<Chat> Server::get_chats(){
+	std::lock_guard<std::mutex> lock(mutex);
+	return db.get_chats();
+}
+
+void Server::new_chat(const Chat &chat){
+	std::lock_guard<std::mutex> lock(mutex);
+	try{
+		db.new_chat(chat);
+		log(chat.creator + " has created a new chat: \"" + chat.name + "\" description: \"" + chat.description + "\"");
+	}catch(const DatabaseException &e){
+		log_error(e.what());
 	}
 }
 

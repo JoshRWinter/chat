@@ -30,11 +30,16 @@ public:
 	void accept();
 	bool running()const;
 
+	// database
+	std::vector<Chat> get_chats();
+	void new_chat(const Chat&);
+
 private:
 	void new_client(int);
 
 	std::atomic<bool> good;
 	std::vector<std::unique_ptr<Client>> client_list;
+	std::mutex mutex;
 	net::tcp_server tcp;
 	Database db;
 };
