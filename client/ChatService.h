@@ -7,7 +7,7 @@
 #include <memory>
 #include <queue>
 
-#include "Command.h"
+#include "ChatWorkUnit.h"
 #include "network.h"
 
 class NetworkException:public std::exception{
