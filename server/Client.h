@@ -9,7 +9,7 @@
 class Client;
 class Server;
 
-#include "../network.h"
+#include "network.h"
 #include "Server.h"
 
 #define HEARTBEAT_FREQUENCY 15

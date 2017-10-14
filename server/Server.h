@@ -6,7 +6,7 @@
 #include <vector>
 #include <exception>
 
-#include "../network.h"
+#include "network.h"
 #include "Client.h"
 #include "Database.h"
 #include "../chat.h"
