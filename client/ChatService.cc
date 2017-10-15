@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "ChatService.h"
 #include "log.h"
 
@@ -56,6 +58,8 @@ void ChatService::loop(){
 
 // try to reconnect
 void ChatService::reconnect(){
+	log_error("lost connection! attempting to reconnect");
+
 	bool reconnected=false;
 	while(!reconnected){
 		reconnected=tcp.connect();
@@ -63,7 +67,12 @@ void ChatService::reconnect(){
 		// see if services needs to shut down
 		if(!working.load())
 			throw ShutdownException();
+
+		// don't burn out the cpu
+		std::this_thread::sleep_for(std::chrono::milliseconds(5));
 	}
+
+	log("reconnected successfully");
 }
 
 // get the first command in the list, then erase it from the list, the return it
