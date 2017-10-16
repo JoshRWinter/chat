@@ -31,6 +31,7 @@ public:
 	Database &operator=(const Database&)=delete;
 	std::vector<Chat> get_chats();
 	void new_chat(const Chat&);
+	static bool valid_table_name(const std::string&);
 
 private:
 	bool exists(const std::string&)const;

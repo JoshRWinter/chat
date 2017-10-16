@@ -74,6 +74,36 @@ void Database::new_chat(const Chat &chat){
 		throw DatabaseException("couldn't add new chat to database");
 
 	sqlite3_finalize(statement);
+
+	// now create a table for the messages
+	const char *newtable=
+	"create table ? (\n"
+	"id int primary key autoincrement,\n"
+	"type int not null,\n" // MessageType enum in chat.h
+	"message varchar("MESSAGE_LEN_STR") not null,\n"
+	"raw blob);"; // reserved for file content, image content, will be null for normal messages
+
+	sqlite3_prepare_v2(conn,newtable,-1,&statement,NULL);
+
+	sqlite3_bind_text(statement,1,chat.name.c_str(),-1,SQLITE_TRANSIENT);
+
+	if(sqlite3_step(statement)!=SQLITE_DONE)
+		throw DatabaseException(std::string("couldn't create new table for chat \"")+chat.name+"\"");
+
+	sqlite3_finalize(statement);
+}
+
+// see if table name is valid
+bool Database::valid_table_name(const std::string &name){
+	// sqlite table names are not allowed to start with "sqlite_..."
+	if(name.find("sqlite_")==0)
+		return false;
+
+	// reject empty name
+	if(name.length()==0)
+		return false;
+
+	return true;
 }
 
 // return true if the database exists and does not need to be created

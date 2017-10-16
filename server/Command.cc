@@ -28,20 +28,82 @@ static void send_string(Client &client,const std::string &str){
 namespace Command{
 
 // send the client a heartbeat to see if they are disconnected
+// implements ServerCommand::HEARTBEAT
 void send_heartbeat(Client &client){
 	ServerCommand type=ServerCommand::HEARTBEAT;
 
 	client.send(&type,sizeof(type));
 }
 
+// lists the chats
+// implements ClientCommand::LIST_CHATS
+void send_all_chats(Client &client){
+	std::vector<Chat> chats=client.get_chats();
+
+	std::int64_t count=chats.size();
+	client.send(&count,sizeof(count));
+
+	for(const Chat &chat:chats){
+		client.send(&chat.id,sizeof(chat.id));
+		send_string(client,chat.name);
+		send_string(client,chat.creator);
+		send_string(client,chat.description);
+	}
+}
+
+// client is sending a message
+// implements ClientCommand::MESSAGE
+Message &&recv_message(Client &client){
+	// receive the msg type
+	std::uint8_t type;
+	client.recv(&type,sizeof(type));
+
+	MessageType mtype=static_cast<MessageType>(type);
+
+	switch(mtype){
+	case MessageType::TEXT:
+	case MessageType::FILE:
+	case MessageType::IMAGE:
+		break;
+	default:
+		// illegal
+		client.kick("illegal message type received: "+std::to_string(type));
+		break;
+	}
+
+	// receive the message
+	std::string message=get_string(client);
+
+	return std::move(Message(mtype,message,client.get_name()));
+}
+
+// allow the client to subscribe to a chat
+// implements ClientCommand::SUBSCRIBE
+void recv_subscription(Client &client){
+	std::uint64_t cid;
+	client.recv(&cid,sizeof(cid));
+
+	std::string name=get_string(client);
+
+	std::uint8_t success=client.subscribe(cid,name)?1:0;
+	client.send(&success,sizeof(success));
+}
+
+// recv clients name
+// implements ClientCommand::INTRODUCE
+std::string recv_name(Client &client){
+	return get_string(client);
+}
+
 // server allows client to create new chats
+// implements ClientCommand::NEW_CHAT
 Chat recv_newchat(Client &client){
 	// recv the id of the chat
-	std::int64_t id;
+	std::uint64_t id;
 	client.recv(&id,sizeof(id));
 
 	// recv the name of the chat
-	const std::string name=get_string(client);
+	std::string name=get_string(client);
 
 	// recv the creator of the chat
 	const std::string creator=get_string(client);
@@ -49,17 +111,14 @@ Chat recv_newchat(Client &client){
 	// recv the description
 	const std::string description=get_string(client);
 
+	// validate the table name
+	std::uint8_t valid=Database::valid_table_name(name)?1:0;
+	// tell the client
+	client.send(&valid,sizeof(valid));
+	if(!valid)
+		name="(not valid!)";
+
 	return {id,name,creator,description};
-}
-
-// client is sending a message
-std::string recv_message(Client &client){
-	return get_string(client);
-}
-
-// recv clients name
-std::string recv_name(Client &client){
-	return get_string(client);
 }
 
 } // namespace Command

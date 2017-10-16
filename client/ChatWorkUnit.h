@@ -1,5 +1,5 @@
-#ifndef COMMAND_H
-#define COMMAND_H
+#ifndef CHATWORKUNIT_H
+#define CHATWORKUNIT_H
 
 #include "network.h"
 
@@ -8,4 +8,4 @@ struct Command{
 	virtual void process(net::tcp&)const=0;
 };
 
-#endif // COMMAND_H
+#endif // CHATWORKUNIT_H

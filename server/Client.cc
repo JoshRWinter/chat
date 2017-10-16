@@ -7,7 +7,7 @@
 #include "../chat.h"
 #include "log.h"
 
-Client::Client(const Server &p,int sockfd):
+Client::Client(Server &p,int sockfd):
 	parent(p),
 	tcp(sockfd),
 	disconnected(false),
@@ -30,13 +30,16 @@ bool Client::dead()const{
 // entry point for the client thread
 void Client::operator()(){
 	try{
-		name=Command::recv_name(*this);
 		loop();
 	}catch(const NetworkException &e){
 		log(name + " has disconnected");
 	}catch(const ShutdownException &e){
 		log(std::string("kicking ") + name);
+	}catch(const ClientKickException &e){
+		log_error(e.what());
 	}
+
+	disconnect();
 }
 
 // send network data
@@ -69,6 +72,29 @@ void Client::recv(void *data,unsigned size){
 	}
 }
 
+// kick this client
+void Client::kick(const std::string &reason)const{
+	throw ClientKickException(std::string("kicking ")+name+" because \""+reason+"\"");
+}
+
+bool Client::subscribe(int cid,const std::string &name){
+	std::vector<Chat> chats=parent.get_chats();
+
+	for(const Chat &chat:chats){
+		if(chat.id==cid&&chat.name==name){
+			subscribed=chat;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// get all chats from parent
+std::vector<Chat> Client::get_chats()const{
+	return parent.get_chats();
+}
+
 // main processing loop for client
 void Client::loop(){
 	for(;;){
@@ -91,12 +117,17 @@ void Client::recv_command(){
 
 	switch(type){
 	case ClientCommand::MESSAGE:
-		log(Command::recv_message(*this));
 		break;
 	case ClientCommand::SUBSCRIBE:
 		break;
 	case ClientCommand::NEW_CHAT:
-		Command::recv_newchat(*this);
+	{
+		Chat chat=Command::recv_newchat(*this);
+		break;
+	}
+	default:
+		// illegal
+		kick(std::string("illegal command received from client: ")+std::to_string(static_cast<std::uint8_t>(type)));
 		break;
 	}
 }
