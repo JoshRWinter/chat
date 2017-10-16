@@ -49,7 +49,9 @@ public:
 	void recv(void*,unsigned);
 	void kick(const std::string&)const;
 	bool subscribe(int,const std::string&);
-	std::vector<Chat> get_chats()const;
+
+	Server &parent;
+	Chat subscribed;
 
 private:
 	void loop();
@@ -57,11 +59,9 @@ private:
 	void heartbeat();
 	void disconnect();
 
-	Server &parent;
 	std::atomic<bool> disconnected;
 	std::thread thread;
 	std::string name;
-	Chat subscribed;
 	net::tcp tcp;
 	time_t last_heartbeat;
 };

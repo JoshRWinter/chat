@@ -90,11 +90,6 @@ bool Client::subscribe(int cid,const std::string &name){
 	return false;
 }
 
-// get all chats from parent
-std::vector<Chat> Client::get_chats()const{
-	return parent.get_chats();
-}
-
 // main processing loop for client
 void Client::loop(){
 	for(;;){

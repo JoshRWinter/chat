@@ -45,10 +45,10 @@ std::vector<Chat> Database::get_chats(){
 
 	while(sqlite3_step(statement)!=SQLITE_DONE){
 		chats.push_back({
-			sqlite3_column_int(statement,0),
+			(unsigned long long)sqlite3_column_int64(statement,0),
 			(char*)sqlite3_column_text(statement,1),
 			(char*)sqlite3_column_text(statement,2),
-			(char*)sqlite3_column_text(statement,3),
+			(char*)sqlite3_column_text(statement,3)
 		});
 	}
 
@@ -59,11 +59,29 @@ std::vector<Chat> Database::get_chats(){
 
 // register a new chat to the database
 void Database::new_chat(const Chat &chat){
+	// now create a table for the messages
+	const char *newtable=
+	"create table ? (\n"
+	"id bigint primary key autoincrement,\n"
+	"type int not null,\n" // MessageType enum in chat.h
+	"message varchar(" MESSAGE_LEN_STR ") not null,\n"
+	"name varchar(511) not null,\n"
+	"raw blob);"; // reserved for file content, image content, will be null for normal messages
+
+	sqlite3_stmt *statement;
+	sqlite3_prepare_v2(conn,newtable,-1,&statement,NULL);
+
+	sqlite3_bind_text(statement,1,chat.name.c_str(),-1,SQLITE_TRANSIENT);
+
+	if(sqlite3_step(statement)!=SQLITE_DONE)
+		throw DatabaseException(std::string("couldn't create new table for chat \"")+chat.name+"\"");
+
+	sqlite3_finalize(statement);
+
 	const char *sqlstatement=
 	"insert into chats(name,creator,description) values\n"
 	"(?,?,?)";
 
-	sqlite3_stmt *statement;
 	sqlite3_prepare_v2(conn,sqlstatement,-1,&statement,NULL);
 
 	sqlite3_bind_text(statement,1,chat.name.c_str(),-1,SQLITE_TRANSIENT);
@@ -74,23 +92,36 @@ void Database::new_chat(const Chat &chat){
 		throw DatabaseException("couldn't add new chat to database");
 
 	sqlite3_finalize(statement);
+}
 
-	// now create a table for the messages
-	const char *newtable=
-	"create table ? (\n"
-	"id int primary key autoincrement,\n"
-	"type int not null,\n" // MessageType enum in chat.h
-	"message varchar("MESSAGE_LEN_STR") not null,\n"
-	"raw blob);"; // reserved for file content, image content, will be null for normal messages
+// get all messages from chat <name> where id is bigger than <since>
+std::vector<Message> Database::get_messages_since(unsigned long long since,const std::string &name){
+	const char *query=
+	"select * from ? where id > ?;";
 
-	sqlite3_prepare_v2(conn,newtable,-1,&statement,NULL);
+	sqlite3_stmt *statement;
+	sqlite3_prepare_v2(conn,query,-1,&statement,NULL);
 
-	sqlite3_bind_text(statement,1,chat.name.c_str(),-1,SQLITE_TRANSIENT);
+	sqlite3_bind_text(statement,1,name.c_str(),-1,SQLITE_TRANSIENT);
+	sqlite3_bind_int64(statement,2,since);
 
-	if(sqlite3_step(statement)!=SQLITE_DONE)
-		throw DatabaseException(std::string("couldn't create new table for chat \"")+chat.name+"\"");
+	std::vector<Message> messages;
+	int rc;
+	while((rc=sqlite3_step(statement))!=SQLITE_DONE){
+		if(rc==SQLITE_ERROR)
+			throw DatabaseException(sqlite3_errmsg(conn));
+
+		messages.push_back({
+			static_cast<MessageType>(sqlite3_column_int(statement,1)),
+			(char*)sqlite3_column_text(statement,2),
+			(char*)sqlite3_column_text(statement,3),
+			NULL
+		});
+	}
 
 	sqlite3_finalize(statement);
+
+	return messages;
 }
 
 // see if table name is valid
@@ -103,7 +134,19 @@ bool Database::valid_table_name(const std::string &name){
 	if(name.length()==0)
 		return false;
 
-	return true;
+	// make sure no chat already named <name>
+	const char *query=
+	"select * from chats where name = ?";
+
+	sqlite3_stmt *statement;
+	sqlite3_prepare_v2(conn,query,-1,&statement,NULL);
+
+	sqlite3_bind_text(statement,1,name.c_str(),-1,SQLITE_TRANSIENT);
+
+	bool exists=sqlite3_step(statement)!=SQLITE_DONE;
+	sqlite3_finalize(statement);
+
+	return exists;
 }
 
 // return true if the database exists and does not need to be created

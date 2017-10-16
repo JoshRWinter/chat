@@ -65,6 +65,16 @@ void Server::new_chat(const Chat &chat){
 	chats=db.get_chats();
 }
 
+std::vector<Message> Server::get_messages_since(unsigned long long id,const std::string &name){
+	std::lock_guard<std::mutex> lock(mutex);
+
+	return db.get_messages_since(id,name);
+}
+
+bool Server::valid_table_name(const std::string &name){
+	return db.valid_table_name(name);
+}
+
 // accept a new client
 void Server::new_client(int connector){
 	client_list.push_back({std::make_unique<Client>(*this,connector)});
