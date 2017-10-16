@@ -15,16 +15,17 @@ ChatService::ChatService():
 
 ChatService::~ChatService(){
 	working.store(false);
+	log("attempting to join service thread");
 	handle.join();
 	log("joined service thread");
 }
 
 // accessed from multiple threads
 // takes ownership of <unit>
-void ChatService::add_work(ChatWorkUnit *unit){
+void ChatService::add_work(const ChatWorkUnit *unit){
 	std::lock_guard<std::mutex> lock(mutex);
 
-	units.push(std::unique_ptr<ChatWorkUnit>(unit));
+	units.push(unit);
 	++work_unit_count;
 }
 
@@ -89,36 +90,41 @@ std::string ChatService::get_string(){
 	return {&raw[0]};
 }
 
-// command loop
+// work unit loop
 void ChatService::loop(){
 	while(working.load()){
 
-		// process commands
+		// process work units
 		if(work_unit_count.load()>0){
-			std::unique_ptr<ChatWorkUnit> unit=get_work();
+			const ChatWorkUnit *unit=get_work();
 
 			try{
 				switch(unit->type){
 				case WorkUnitType::CONNECT:
-					process_connect(*unit.get());
+					process_connect(*unit);
 					break;
 				case WorkUnitType::NEW_CHAT:
-					process_newchat(*unit.get());
+					process_newchat(*unit);
 					break;
 				case WorkUnitType::SUBSCRIBE:
-					process_subscribe(*unit.get());
+					process_subscribe(*unit);
 					break;
 				case WorkUnitType::MESSAGE:
-					process_send(*unit.get());
+					process_send(*unit);
 					break;
 				}
-			}catch(const NetworkException &e){
+			}catch(const std::exception &e){
 				log_error(e.what());
-				// add the command back to the queue to retry again later
-				add_work(unit.release());
+				// add the unit back to the queue to retry again later
+				add_work(unit);
 				throw;
 			}
+
+			// unit was processed successfully
+			delete unit;
 		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(60));
 	}
 }
 
@@ -142,18 +148,19 @@ void ChatService::reconnect(){
 }
 
 // get the first command in the list, then erase it from the list, the return it
-std::unique_ptr<ChatWorkUnit> &&ChatService::get_work(){
+const ChatWorkUnit *ChatService::get_work(){
 	std::lock_guard<std::mutex> lock(mutex);
 
-	ChatWorkUnit *unit=units.front().release();
+	const ChatWorkUnit *unit=units.front();
 	units.pop();
 	--work_unit_count;
 
-	return std::move(std::unique_ptr<ChatWorkUnit>(unit));
+	return unit;
 }
 
 // connect the client to server
 void ChatService::process_connect(const ChatWorkUnit &unit){
+	log("processing here");
 	const ChatWorkUnit::connect &connect=std::get<ChatWorkUnit::connect>(unit.work);
 	if(tcp.target(connect.target,CHAT_PORT)){
 		time_t current=time(NULL);
@@ -161,6 +168,7 @@ void ChatService::process_connect(const ChatWorkUnit &unit){
 		// 5 second timeout
 		while(time(NULL)-current<5&&!connected){
 			connected=tcp.connect();
+			std::this_thread::sleep_for(std::chrono::milliseconds(5));
 		}
 
 		if(connected){

@@ -4,7 +4,6 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
-#include <memory>
 #include <queue>
 
 #include "ChatWorkUnit.h"
@@ -28,7 +27,7 @@ class ChatService{
 public:
 	ChatService();
 	~ChatService();
-	void add_work(ChatWorkUnit*);
+	void add_work(const ChatWorkUnit*);
 	void operator()();
 	void send(const void*,int);
 	void recv(void*,int);
@@ -38,7 +37,7 @@ public:
 private:
 	void loop();
 	void reconnect();
-	std::unique_ptr<ChatWorkUnit> &&get_work();
+	const ChatWorkUnit *get_work();
 	void process_connect(const ChatWorkUnit &unit);
 	void process_newchat(const ChatWorkUnit &unit);
 	void process_subscribe(const ChatWorkUnit &unit);
@@ -47,7 +46,7 @@ private:
 	net::tcp tcp;
 	std::atomic<bool> working; // service thread currently running
 	std::atomic<int> work_unit_count; // atomically accessible version of units.size()
-	std::queue<std::unique_ptr<ChatWorkUnit>> units;
+	std::queue<const ChatWorkUnit*> units;
 	std::mutex mutex; // guards access to <units>
 	std::thread handle;
 	std::function<void(Message)> msg_callback;

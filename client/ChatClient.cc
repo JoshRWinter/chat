@@ -1,5 +1,8 @@
 #include "ChatClient.h"
 
+ChatClient::ChatClient(const std::string &dbpath){
+}
+
 ChatClient::~ChatClient(){
 }
 

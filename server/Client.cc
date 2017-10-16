@@ -111,9 +111,21 @@ void Client::recv_command(){
 	recv(&type,sizeof(type));
 
 	switch(type){
+	case ClientCommand::LIST_CHATS:
+			log("client requests chats");
+		Command::send_all_chats(*this);
+		break;
 	case ClientCommand::MESSAGE:
+		{
+			Message msg=Command::recv_message(*this);
+			log(name+" says "+msg.msg);
+		}
 		break;
 	case ClientCommand::SUBSCRIBE:
+		Command::recv_subscription(*this);
+		break;
+	case ClientCommand::INTRODUCE:
+		name=Command::recv_name(*this);
 		break;
 	case ClientCommand::NEW_CHAT:
 	{

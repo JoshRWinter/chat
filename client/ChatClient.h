@@ -3,12 +3,13 @@
 
 #include <string>
 #include <functional>
+#include <vector>
 
 #include "ChatService.h"
 
 class ChatClient{
 public:
-	ChatClient()=default;
+	ChatClient(const std::string&);
 	~ChatClient();
 	void connect(const std::string&,const std::string&,std::function<void(bool,std::vector<Chat>)>);
 	void newchat(const std::string&,std::function<void(bool)>);
