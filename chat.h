@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <memory>
 
+#include <string.h>
+
 #define CHAT_PORT 28859
 
 #define MESSAGE_LEN_INT 510 // these two must
@@ -32,9 +34,20 @@ enum class MessageType:std::uint8_t{
 
 // the message object
 struct Message{
-	Message(MessageType t,const std::string &m,const std::string &s,unsigned char *r=NULL)
-	:type(t),msg(m),sender(s),raw(r){}
-	Message(Message &&other){
+	Message():raw(NULL),raw_size(0){}
+	Message(MessageType t,const std::string &m,const std::string &s,unsigned char *r,unsigned rs)
+	:type(t),msg(m),sender(s),raw(r),raw_size(rs){}
+
+	Message(const Message &rhs){ // copy constructor
+		type=rhs.type;
+		msg=rhs.msg;
+		sender=rhs.sender;
+		raw_size=rhs.raw_size;
+		raw=new unsigned char[raw_size];
+		memcpy(raw,rhs.raw,raw_size);
+	}
+
+	Message(Message &&other){ // move constructor
 		type=other.type;
 		msg=other.msg;
 		sender=other.sender;
@@ -42,14 +55,44 @@ struct Message{
 
 		other.raw=NULL;
 	}
+
+	Message &operator=(Message &&rhs){ // move assignment
+		delete[] raw;
+
+		type=rhs.type;
+		msg=std::move(rhs.msg);
+		sender=std::move(rhs.sender);
+		raw=rhs.raw;
+		raw_size=rhs.raw_size;
+
+		rhs.raw=NULL;
+		rhs.raw_size=0;
+
+		return *this;
+	}
+
+	Message &operator=(const Message &rhs){ // copy assignment
+		delete[] raw;
+
+		type=rhs.type;
+		msg=rhs.msg;
+		sender=rhs.sender;
+		raw=new unsigned char[rhs.raw_size];
+		memcpy(raw,rhs.raw,rhs.raw_size);
+		raw_size=rhs.raw_size;
+
+		return *this;
+	}
+
 	~Message(){
-		delete raw;
+		delete[] raw;
 	}
 
 	MessageType type;
 	std::string msg;
 	std::string sender;
 	unsigned char *raw;
+	unsigned raw_size;
 };
 
 // describes a "chat" the meta data for a group chat

@@ -28,22 +28,30 @@ class ChatService{
 public:
 	ChatService();
 	~ChatService();
-	void add_command(Command*);
+	void add_work(ChatWorkUnit*);
 	void operator()();
+	void send(const void*,int);
+	void recv(void*,int);
+	void send_string(const std::string&);
+	std::string get_string();
 
 private:
 	void loop();
 	void reconnect();
-	std::unique_ptr<Command> &&get_command();
-	void send(void*,int);
-	void recv(void*,int);
+	std::unique_ptr<ChatWorkUnit> &&get_work();
+	void process_connect(const ChatWorkUnit &unit);
+	void process_newchat(const ChatWorkUnit &unit);
+	void process_subscribe(const ChatWorkUnit &unit);
+	void process_send(const ChatWorkUnit &unit);
 
 	net::tcp tcp;
 	std::atomic<bool> working; // service thread currently running
-	std::atomic<int> command_count; // atomically accessible version of commands.size()
-	std::queue<std::unique_ptr<Command>> commands;
-	std::mutex mutex; // guards access to <commands>
+	std::atomic<int> work_unit_count; // atomically accessible version of units.size()
+	std::queue<std::unique_ptr<ChatWorkUnit>> units;
+	std::mutex mutex; // guards access to <units>
 	std::thread handle;
+	std::function<void(Message)> msg_callback;
+
 };
 
 #endif // CHATSERVICE_H

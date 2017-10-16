@@ -40,7 +40,7 @@ void send_heartbeat(Client &client){
 void send_all_chats(Client &client){
 	std::vector<Chat> chats=client.parent.get_chats();
 
-	std::int64_t count=chats.size();
+	std::uint64_t count=chats.size();
 	client.send(&count,sizeof(count));
 
 	for(const Chat &chat:chats){
@@ -74,7 +74,7 @@ Message &&recv_message(Client &client){
 	// receive the message
 	std::string message=get_string(client);
 
-	return std::move(Message(mtype,message,client.get_name()));
+	return std::move(Message(mtype,message,client.get_name(),NULL,0));
 }
 
 // allow the client to subscribe to a chat
