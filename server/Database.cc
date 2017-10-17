@@ -115,7 +115,8 @@ std::vector<Message> Database::get_messages_since(unsigned long long since,const
 			static_cast<MessageType>(sqlite3_column_int(statement,1)),
 			(char*)sqlite3_column_text(statement,2),
 			(char*)sqlite3_column_text(statement,3),
-			NULL
+			NULL,
+			0
 		});
 	}
 

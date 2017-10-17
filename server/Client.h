@@ -45,25 +45,35 @@ public:
 	std::thread &get_thread();
 	const std::string &get_name()const;
 	bool dead()const;
-	void send(const void*,unsigned);
-	void recv(void*,unsigned);
 	void kick(const std::string&)const;
 	bool subscribe(int,const std::string&);
 
-	Server &parent;
-	Chat subscribed;
-
 private:
+	void send(const void*,unsigned);
+	void recv(void*,unsigned);
 	void loop();
 	void recv_command();
 	void heartbeat();
 	void disconnect();
+	std::string get_string();
+	void send_string(const std::string&);
+
+	// net commands implementing ClientCommand::*
+	void clientcmd_list_chats();
+	void clientcmd_message();
+	void clientcmd_newchat();
+	void clientcmd_subscribe();
+	void clientcmd_introduce();
+	// net commands implementing ServerCommand::*
+	void servercmd_heartbeat();
 
 	std::atomic<bool> disconnected;
 	std::thread thread;
 	std::string name;
 	net::tcp tcp;
 	time_t last_heartbeat;
+	Server &parent;
+	Chat subscribed;
 };
 
 #endif // CLIENT_H

@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include "Client.h"
-#include "Command.h"
 #include "../chat.h"
 #include "log.h"
 
@@ -112,26 +111,20 @@ void Client::recv_command(){
 
 	switch(type){
 	case ClientCommand::LIST_CHATS:
-			log("client requests chats");
-		Command::send_all_chats(*this);
+		clientcmd_list_chats();
 		break;
 	case ClientCommand::MESSAGE:
-		{
-			Message msg=Command::recv_message(*this);
-			log(name+" says "+msg.msg);
-		}
+		clientcmd_message();
 		break;
 	case ClientCommand::SUBSCRIBE:
-		Command::recv_subscription(*this);
+		clientcmd_subscribe();
 		break;
 	case ClientCommand::INTRODUCE:
-		name=Command::recv_name(*this);
+		clientcmd_introduce();
 		break;
 	case ClientCommand::NEW_CHAT:
-	{
-		Chat chat=Command::recv_newchat(*this);
+		clientcmd_newchat();
 		break;
-	}
 	default:
 		// illegal
 		kick(std::string("illegal command received from client: ")+std::to_string(static_cast<std::uint8_t>(type)));
@@ -147,9 +140,157 @@ void Client::heartbeat(){
 		last_heartbeat=0;
 
 	if(current-last_heartbeat>HEARTBEAT_FREQUENCY)
-		Command::send_heartbeat(*this);
+		servercmd_heartbeat();
 }
 
 void Client::disconnect(){
 	disconnected.store(true);
+}
+
+// get a string off the network
+std::string Client::get_string(){
+	// get the size
+	std::uint32_t size;
+	recv(&size,sizeof(size));
+
+	// get <size> characters
+	std::vector<char> raw(size+1);
+	recv(&raw[0],size);
+	raw[size]=0;
+
+	return {&raw[0]};
+}
+
+// send a string on the network
+void Client::send_string(const std::string &str){
+	// send the size
+	std::uint32_t size=str.length();
+	send(&size,sizeof(size));
+
+	// send the string
+	send(str.c_str(),size);
+}
+
+// lists the chats
+// implements ClientCommand::LIST_CHATS
+void Client::clientcmd_list_chats(){
+	std::vector<Chat> chats=parent.get_chats();
+
+	std::uint64_t count=chats.size();
+	send(&count,sizeof(count));
+
+	for(const Chat &chat:chats){
+		send(&chat.id,sizeof(chat.id));
+		send_string(chat.name);
+		send_string(chat.creator);
+		send_string(chat.description);
+	}
+}
+
+// client is sending a message
+// implements ClientCommand::MESSAGE
+void Client::clientcmd_message(){
+	// receive the msg type
+	std::uint8_t type;
+	recv(&type,sizeof(type));
+
+	MessageType mtype=static_cast<MessageType>(type);
+
+	switch(mtype){
+	case MessageType::TEXT:
+	case MessageType::FILE:
+	case MessageType::IMAGE:
+		break;
+	default:
+		// illegal
+		kick("illegal message type received: "+std::to_string(type));
+		break;
+	}
+
+	// receive the message
+	std::string message=get_string();
+
+	log(name+" says "+message);
+}
+
+// allow the client to subscribe to a chat
+// implements ClientCommand::SUBSCRIBE
+void Client::clientcmd_subscribe(){
+	// get the id of the desired chat
+	std::uint64_t cid;
+	recv(&cid,sizeof(cid));
+
+	// get the name of the desired chat
+	std::string name=get_string();
+
+	std::uint8_t success=subscribe(cid,name)?1:0;
+	send(&success,sizeof(success));
+
+	// recv the max message id in that chat
+	std::uint64_t max;
+	recv(&max,sizeof(max));
+
+	// send all messages in the chat where message.id > max
+	// basically getting the client back up to date since they were last connected
+	std::vector<Message> since=parent.get_messages_since(max,subscribed.name);
+
+	// send the count
+	std::uint64_t count=since.size();
+
+	// send <count> messages
+	for(const Message &msg:since){
+		// send the message type
+		std::uint8_t type=static_cast<std::uint8_t>(msg.type);
+		send(&type,sizeof(type));
+
+		// send msg
+		send_string(msg.msg);
+
+		// send sender
+		send_string(msg.sender);
+
+		// send raw
+		std::uint64_t raw_size=0;
+		send(&raw_size,sizeof(raw_size));
+	}
+}
+
+// server allows client to create new chats
+// implements ClientCommand::NEW_CHAT
+void Client::clientcmd_newchat(){
+	// recv the id of the chat
+	std::uint64_t id;
+	recv(&id,sizeof(id));
+
+	// recv the name of the chat
+	std::string name=get_string();
+
+	// recv the creator of the chat
+	const std::string creator=get_string();
+
+	// recv the description
+	const std::string description=get_string();
+
+	// validate the table name
+	std::uint8_t valid=parent.valid_table_name(name)?1:0;
+	// tell the client
+	send(&valid,sizeof(valid));
+	if(!valid)
+		name="(not valid!)";
+
+	parent.new_chat({id,name,creator,description});
+}
+
+// recv clients name
+// implements ClientCommand::INTRODUCE
+void Client::clientcmd_introduce(){
+	name=get_string();
+}
+
+// send the client a heartbeat to see if they are disconnected
+// implements ServerCommand::HEARTBEAT
+void Client::servercmd_heartbeat(){
+	ServerCommand type=ServerCommand::HEARTBEAT;
+
+	send(&type,sizeof(type));
 }
