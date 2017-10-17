@@ -26,6 +26,7 @@ private:
 
 class tcp{
 public:
+	tcp()=default;
 	tcp(const std::string&,unsigned short);
 	tcp(int);
 	tcp(const tcp&)=delete;
@@ -40,7 +41,7 @@ public:
 	void recv_block(void*,unsigned);
 	int send_nonblock(const void*,unsigned);
 	int recv_nonblock(void*,unsigned);
-	int peek()const;
+	unsigned peek();
 	void close();
 	bool error()const;
 	const std::string &get_name()const;
@@ -59,9 +60,9 @@ private:
 struct udp_id{
 	udp_id():initialized(false),len(sizeof(sockaddr_storage)){}
 
+	bool initialized;
 	sockaddr_storage storage;
 	socklen_t len;
-	bool initialized;
 };
 
 class udp_server{
@@ -73,8 +74,8 @@ public:
 	udp_server &operator=(const udp_server&)=delete;
 	bool operator!()const;
 	void close();
-	void send(const void*,unsigned,const udp_id&);
-	void recv(void*,unsigned,udp_id&);
+	void send(const void*,int,const udp_id&);
+	void recv(void*,int,udp_id&);
 	int peek()const;
 	bool error()const;
 

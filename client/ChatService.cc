@@ -206,7 +206,7 @@ void ChatService::process_connect(const ChatWorkUnit &unit){
 			log(std::string("receiving ")+std::to_string(count)+" chats");
 
 			std::vector<Chat> list;
-			for(int i=0;i<count;++i){
+			for(std::uint64_t i=0;i<count;++i){
 				// get the id
 				std::uint64_t id;
 				recv(&id,sizeof(id));

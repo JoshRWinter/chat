@@ -1,4 +1,4 @@
-CPPFLAGS := -g -c -std=c++14
+CPPFLAGS := -g -c -std=c++14 -Wall -pedantic
 LFLAGS := -pthread -lsqlite3
 COMPILER := g++
 REMOVE := rm

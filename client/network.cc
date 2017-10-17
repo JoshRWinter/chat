@@ -29,13 +29,12 @@ bool net::tcp_server::operator!()const{
 // returns -1 on failure
 int net::tcp_server::accept(){
 	if(scan==-1)
-		return 0;
+		return -1;
 
 	sockaddr_in6 connector_addr;
 	socklen_t addr_len=sizeof(sockaddr_in6);
 	int sock=::accept(scan,(sockaddr*)&connector_addr,&addr_len);
-	if(sock==-1)
-		return sock;
+
 	return sock;
 }
 
@@ -216,7 +215,7 @@ void net::tcp::send_block(const void *buffer,unsigned size){
 
 	set_blocking(true);
 
-	int tr=0; // bytes transferred
+	unsigned tr=0; // bytes transferred
 	while(tr!=size){
 		int result=::send(sock,((char*)buffer)+tr,size-tr,0);
 		if(result<1){
@@ -235,7 +234,7 @@ void net::tcp::recv_block(void *buffer,unsigned size){
 
 	set_blocking(true);
 
-	int tr=0; // bytes transferred
+	unsigned tr=0; // bytes transferred
 	while(tr!=size){
 		int result=::recv(sock,((char*)buffer)+tr,size-tr,0);
 		if(result<1){
@@ -290,13 +289,19 @@ int net::tcp::recv_nonblock(void *buffer,unsigned size){
 }
 
 // check how many bytes are available on the socket
-int net::tcp::peek()const{
+unsigned net::tcp::peek(){
 	if(sock==-1)
 		return 0;
 
 	int available=0;
 	ioctl(sock,FIONREAD,&available);
-	return available;
+
+	if(available<0){
+		this->close();
+		return 0;
+	}
+
+	return (unsigned)available;
 }
 
 // error check
@@ -381,7 +386,7 @@ void net::udp_server::close(){
 }
 
 // blocking send
-void net::udp_server::send(const void *buffer,unsigned len,const udp_id &id){
+void net::udp_server::send(const void *buffer,int len,const udp_id &id){
 	if(sock==-1)
 		return;
 
@@ -399,7 +404,7 @@ void net::udp_server::send(const void *buffer,unsigned len,const udp_id &id){
 }
 
 // blocking recv
-void net::udp_server::recv(void *buffer,unsigned len,udp_id &id){
+void net::udp_server::recv(void *buffer,int len,udp_id &id){
 	if(sock==-1)
 		return;
 

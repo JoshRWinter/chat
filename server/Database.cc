@@ -160,7 +160,7 @@ bool Database::exists(const std::string &fname)const{
 std::string Database::escape_table_name(const std::string &name){
 	std::string escaped=std::string("\"")+name+"\"";
 
-	for(int i=1;i<escaped.length()-1;++i){
+	for(unsigned i=1;i<escaped.length()-1;++i){
 		if(escaped[i]=='"'){
 			escaped.insert(i,"\"");
 			++i;

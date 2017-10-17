@@ -46,7 +46,7 @@ public:
 	const std::string &get_name()const;
 	bool dead()const;
 	void kick(const std::string&)const;
-	bool subscribe(int,const std::string&);
+	bool subscribe(unsigned long long,const std::string&);
 
 private:
 	void send(const void*,unsigned);
@@ -67,12 +67,12 @@ private:
 	// net commands implementing ServerCommand::*
 	void servercmd_heartbeat();
 
+	Server &parent;
+	net::tcp tcp;
 	std::atomic<bool> disconnected;
+	time_t last_heartbeat;
 	std::thread thread;
 	std::string name;
-	net::tcp tcp;
-	time_t last_heartbeat;
-	Server &parent;
 	Chat subscribed;
 };
 

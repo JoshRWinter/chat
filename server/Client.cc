@@ -57,7 +57,7 @@ void Client::send(const void *data,unsigned size){
 
 // recv network data
 void Client::recv(void *data,unsigned size){
-	int got=0;
+	unsigned got=0;
 	while(got!=size){
 		got+=tcp.recv_nonblock((char*)data+got,size-got);
 
@@ -75,7 +75,7 @@ void Client::kick(const std::string &reason)const{
 	throw ClientKickException(std::string("kicking ")+name+" because \""+reason+"\"");
 }
 
-bool Client::subscribe(int cid,const std::string &name){
+bool Client::subscribe(unsigned long long cid,const std::string &name){
 	std::vector<Chat> chats=parent.get_chats();
 
 	for(const Chat &chat:chats){
@@ -239,6 +239,7 @@ void Client::clientcmd_subscribe(){
 
 	// send the count
 	std::uint64_t count=since.size();
+	send(&count,sizeof(count));
 
 	// send <count> messages
 	for(const Message &msg:since){
