@@ -12,7 +12,7 @@ public:
 	ChatClient(const std::string&);
 	~ChatClient();
 	void connect(const std::string&,const std::string&,std::function<void(bool,std::vector<Chat>)>);
-	void newchat(const std::string&,std::function<void(bool)>);
+	void newchat(const Chat&,std::function<void(bool)>);
 	void subscribe(const Chat&,std::function<void(bool)>,std::function<void(Message)>);
 	void send(Message&);
 

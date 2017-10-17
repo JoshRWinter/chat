@@ -36,6 +36,7 @@ public:
 
 private:
 	void loop();
+	void recv_server_cmd();
 	void reconnect();
 	const ChatWorkUnit *get_work();
 	void process_connect(const ChatWorkUnit &unit);

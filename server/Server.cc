@@ -75,6 +75,10 @@ bool Server::valid_table_name(const std::string &name){
 	return db.valid_table_name(name);
 }
 
+void Server::sleep(){
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+}
+
 // accept a new client
 void Server::new_client(int connector){
 	client_list.push_back({std::make_unique<Client>(*this,connector)});

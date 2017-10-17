@@ -8,7 +8,7 @@ OBJECTS := network.o log.o main.o Server.o Client.o Database.o
 chat-server: $(OBJECTS)
 	$(COMPILER) -o $@ $(OBJECTS) $(LFLAGS)
 
-%.o: %.cc *.h
+%.o: %.cc *.h ../chat.h
 	$(COMPILER) $(CPPFLAGS) $<
 
 .PHONY: clean

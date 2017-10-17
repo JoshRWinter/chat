@@ -43,6 +43,11 @@ int main(){
 			print("couldn't connect");
 	});
 
+	Chat chat("coolc\"\"hat","joe biden","this is a sick chat");
+	client.newchat(chat,[](bool success){
+		print(success?"success!":"failure!");
+	});
+
 	while(running.load()){
 		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	}

@@ -1,6 +1,7 @@
 #include <fstream>
 
 #include "Database.h"
+#include "log.h"
 
 Database::Database(const std::string &fname){
 	bool create=!exists(fname);
@@ -60,21 +61,21 @@ std::vector<Chat> Database::get_chats(){
 // register a new chat to the database
 void Database::new_chat(const Chat &chat){
 	// now create a table for the messages
-	const char *newtable=
-	"create table ? (\n"
-	"id bigint primary key autoincrement,\n"
+	const std::string newtable=std::string("")+
+	"create table "+Database::escape_table_name(chat.name)+" (\n"
+	"id integer primary key autoincrement,\n"
 	"type int not null,\n" // MessageType enum in chat.h
 	"message varchar(" MESSAGE_LEN_STR ") not null,\n"
 	"name varchar(511) not null,\n"
 	"raw blob);"; // reserved for file content, image content, will be null for normal messages
 
 	sqlite3_stmt *statement;
-	sqlite3_prepare_v2(conn,newtable,-1,&statement,NULL);
+	sqlite3_prepare_v2(conn,newtable.c_str(),-1,&statement,NULL);
 
 	sqlite3_bind_text(statement,1,chat.name.c_str(),-1,SQLITE_TRANSIENT);
 
 	if(sqlite3_step(statement)!=SQLITE_DONE)
-		throw DatabaseException(std::string("couldn't create new table for chat \"")+chat.name+"\"");
+		throw DatabaseException(std::string("couldn't create new table for chat \"")+chat.name+"\": "+sqlite3_errmsg(conn));
 
 	sqlite3_finalize(statement);
 
@@ -89,7 +90,7 @@ void Database::new_chat(const Chat &chat){
 	sqlite3_bind_text(statement,3,chat.description.c_str(),-1,SQLITE_TRANSIENT);
 
 	if(sqlite3_step(statement)!=SQLITE_DONE)
-		throw DatabaseException("couldn't add new chat to database");
+		throw DatabaseException(std::string("couldn't add new chat to database: ")+sqlite3_errmsg(conn));
 
 	sqlite3_finalize(statement);
 }
@@ -144,14 +145,27 @@ bool Database::valid_table_name(const std::string &name){
 
 	sqlite3_bind_text(statement,1,name.c_str(),-1,SQLITE_TRANSIENT);
 
-	bool exists=sqlite3_step(statement)!=SQLITE_DONE;
+	bool exists=sqlite3_step(statement)==SQLITE_ROW;
 	sqlite3_finalize(statement);
 
-	return exists;
+	return !exists;
 }
 
 // return true if the database exists and does not need to be created
 bool Database::exists(const std::string &fname)const{
 	std::ifstream file(fname);
 	return !!file;
+}
+
+std::string Database::escape_table_name(const std::string &name){
+	std::string escaped=std::string("\"")+name+"\"";
+
+	for(int i=1;i<escaped.length()-1;++i){
+		if(escaped[i]=='"'){
+			escaped.insert(i,"\"");
+			++i;
+		}
+	}
+
+	return escaped;
 }

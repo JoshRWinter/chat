@@ -33,6 +33,7 @@ public:
 	void new_chat(const Chat&);
 	std::vector<Message> get_messages_since(unsigned long long,const std::string&);
 	bool valid_table_name(const std::string&);
+	static void sleep();
 
 private:
 	void new_client(int);

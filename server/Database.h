@@ -36,6 +36,7 @@ public:
 
 private:
 	bool exists(const std::string&)const;
+	static std::string escape_table_name(const std::string&);
 
 	sqlite3 *conn;
 };

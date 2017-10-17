@@ -100,6 +100,8 @@ struct Chat{
 	Chat():id(0){}
 	Chat(unsigned long long i,const std::string &n,const std::string &c,const std::string &d)
 	:id(i),name(n),creator(c),description(d){}
+	Chat(const std::string &n,const std::string &c,const std::string &d)
+	:id(0),name(n),creator(c),description(d){}
 	bool operator==(const Chat &other)const{
 		return id==other.id&&name==other.name&&creator==other.creator&&description==other.description;
 	}

@@ -23,7 +23,7 @@ struct ChatWorkUnit{
 	};
 
 	struct newchat{ // if WorkUnitType::NEW_CHAT
-		std::string chatname;
+		Chat chat;
 		std::function<void(bool)> callback;
 	};
 

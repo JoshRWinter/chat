@@ -11,7 +11,7 @@ interface: interface.cc libchat.so ChatClient.h
 libchat.so: $(OBJECTS)
 	$(COMPILER) -o $@ $(LFLAGS) $(OBJECTS)
 
-%.o: %.cc *.h
+%.o: %.cc *.h ../chat.h
 	$(COMPILER) $(CPPFLAGS) $<
 
 .PHONY: clean

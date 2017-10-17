@@ -1,6 +1,5 @@
 #include <functional>
 #include <cstdint>
-#include <iostream>
 
 #include "Client.h"
 #include "../chat.h"
@@ -98,6 +97,8 @@ void Client::loop(){
 		heartbeat();
 
 		recv_command();
+
+		Server::sleep();
 	}
 }
 
@@ -139,8 +140,10 @@ void Client::heartbeat(){
 	if(current<last_heartbeat) // user messed with system clock
 		last_heartbeat=0;
 
-	if(current-last_heartbeat>HEARTBEAT_FREQUENCY)
+	if(current-last_heartbeat>HEARTBEAT_FREQUENCY){
 		servercmd_heartbeat();
+		//last_heartbeat=current;
+	}
 }
 
 void Client::disconnect(){
@@ -258,10 +261,6 @@ void Client::clientcmd_subscribe(){
 // server allows client to create new chats
 // implements ClientCommand::NEW_CHAT
 void Client::clientcmd_newchat(){
-	// recv the id of the chat
-	std::uint64_t id;
-	recv(&id,sizeof(id));
-
 	// recv the name of the chat
 	std::string name=get_string();
 
@@ -275,21 +274,21 @@ void Client::clientcmd_newchat(){
 	std::uint8_t valid=parent.valid_table_name(name)?1:0;
 	// tell the client
 	send(&valid,sizeof(valid));
-	if(!valid)
-		name="(not valid!)";
-
-	parent.new_chat({id,name,creator,description});
+	if(valid)
+		parent.new_chat({0,name,creator,description});
 }
 
 // recv clients name
 // implements ClientCommand::INTRODUCE
 void Client::clientcmd_introduce(){
 	name=get_string();
+	log(name+" has connected");
 }
 
 // send the client a heartbeat to see if they are disconnected
 // implements ServerCommand::HEARTBEAT
 void Client::servercmd_heartbeat(){
+	return;
 	ServerCommand type=ServerCommand::HEARTBEAT;
 
 	send(&type,sizeof(type));

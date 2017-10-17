@@ -93,7 +93,6 @@ std::string ChatService::get_string(){
 // work unit loop
 void ChatService::loop(){
 	while(working.load()){
-
 		// process work units
 		if(work_unit_count.load()>0){
 			const ChatWorkUnit *unit=get_work();
@@ -124,7 +123,30 @@ void ChatService::loop(){
 			delete unit;
 		}
 
+		// see if the server has anything to say
+		recv_server_cmd();
+
 		std::this_thread::sleep_for(std::chrono::milliseconds(60));
+	}
+}
+
+void ChatService::recv_server_cmd(){
+	if(tcp.peek()<sizeof(ServerCommand))
+		return;
+
+	ServerCommand type;
+	recv(&type,sizeof(type));
+
+	switch(type){
+	case ServerCommand::HEARTBEAT:
+		// ignore
+		break;
+	case ServerCommand::MESSAGE:
+		// todo
+		break;
+	default:
+		// illegal
+		log_error(std::string("received an illegal command from the server: ")+std::to_string(static_cast<uint8_t>(type)));
 	}
 }
 
@@ -141,7 +163,7 @@ void ChatService::reconnect(){
 			throw ShutdownException();
 
 		// don't burn out the cpu
-		std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	}
 
 	log("reconnected successfully");
@@ -160,7 +182,6 @@ const ChatWorkUnit *ChatService::get_work(){
 
 // connect the client to server
 void ChatService::process_connect(const ChatWorkUnit &unit){
-	log("processing here");
 	const ChatWorkUnit::connect &connect=std::get<ChatWorkUnit::connect>(unit.work);
 	if(tcp.target(connect.target,CHAT_PORT)){
 		time_t current=time(NULL);
@@ -182,6 +203,7 @@ void ChatService::process_connect(const ChatWorkUnit &unit){
 			send(&type,sizeof(type));
 			std::uint64_t count;
 			recv(&count,sizeof(count));
+			log(std::string("receiving ")+std::to_string(count)+" chats");
 
 			std::vector<Chat> list;
 			for(int i=0;i<count;++i){
@@ -199,6 +221,7 @@ void ChatService::process_connect(const ChatWorkUnit &unit){
 				const std::string &description=get_string();
 
 				list.push_back({id,name,creator,description});
+				log("got 1");
 			}
 
 			// do the callback
@@ -212,6 +235,21 @@ void ChatService::process_connect(const ChatWorkUnit &unit){
 
 // ask the server to create new chat
 void ChatService::process_newchat(const ChatWorkUnit &unit){
+	const ChatWorkUnit::newchat &newchat=std::get<1>(unit.work);
+
+	ClientCommand type=ClientCommand::NEW_CHAT;
+	send(&type,sizeof(type));
+
+	// send the name of the chat
+	send_string(newchat.chat.name);
+	// send the creator of the chat
+	send_string(newchat.chat.creator);
+	// send the description of the chat
+	send_string(newchat.chat.description);
+
+	uint8_t success;
+	recv(&success,sizeof(success));
+	newchat.callback(success==1);
 }
 
 // subscribe to a chat

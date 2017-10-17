@@ -20,12 +20,12 @@ void ChatClient::connect(const std::string &target,const std::string &myname,std
 	service.add_work(unit);
 }
 
-void ChatClient::newchat(const std::string &name,std::function<void(bool)> callback){
+void ChatClient::newchat(const Chat &chat,std::function<void(bool)> callback){
 	ChatWorkUnit *unit=new ChatWorkUnit;
 	ChatWorkUnit::newchat newchat;
 
 	unit->type=WorkUnitType::NEW_CHAT;
-	newchat.chatname=name;
+	newchat.chat=chat;
 	newchat.callback=std::move(callback);
 
 	unit->work=newchat;
