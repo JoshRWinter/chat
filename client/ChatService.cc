@@ -259,3 +259,168 @@ void ChatService::process_subscribe(const ChatWorkUnit &unit){
 // send a message
 void ChatService::process_send(const ChatWorkUnit &unit){
 }
+
+// tell the server user's name
+// implements ClientCommand::INTRODUCE
+void ChatService::clientcmd_introduce(){
+	ClientCommand type=ClientCommand::INTRODUCE;
+	send(&type,sizeof(type));
+
+	send_string(name);
+}
+
+// ask the server for list of chats
+// implements ClientCommand::LIST_CHATS
+void ChatService::clientcmd_list_chats(){
+	ClientCommand type=ClientCommand::LIST_CHATS;
+	send(&type,sizeof(type));
+}
+
+// tell the server to make a new chat
+// implements ClientCommand::NEW_CHAT
+void ChatService::clientcmd_new_chat(const Chat &chat){
+	ClientCommand type=ClientCommand::NEW_CHAT;
+	send(&type,sizeof(type));
+
+	send_string(chat.name);
+	send_string(chat.creator);
+	send_string(chat.description);
+}
+
+// subscribe to a chat
+// implements ClientCommand::SUBSCRIBE
+void ChatService::clientcmd_subscribe(const Chat &chat){
+	ClientCommand type=ClientCommand::SUBSCRIBE;
+	send(&type,sizeof(type));
+
+	send(&chat.id,sizeof(chat.id));
+	send_string(chat.name);
+	// send the highest message that exists in the database
+	std::uint64_t max=0;
+	send(&max,sizeof(max));
+}
+
+// send a message
+// implements ClientCommand::MESSAGE
+void ChatService::clientcmd_message(const Message &msg){
+	ClientCommand type=ClientCommand::MESSAGE;
+	send(&type,sizeof(type));
+
+	send(&msg.type,sizeof(msg.type));
+	send_string(msg.msg);
+
+	// if the msg is a file or image, send the file/image data
+	if(msg.type==MessageType::IMAGE||msg.type==MessageType::FILE){
+		send(&msg.raw_size,sizeof(msg.raw_size));
+		send(msg.raw,msg.raw_size);
+	}
+}
+
+// recv a list of chats from server
+// implements ServerCommand::LIST_CHATS
+void ChatService::servercmd_list_chats(){
+	// recv the number of chats
+	std::uint64_t count;
+	recv(&count,sizeof(count));
+
+	std::vector<Chat> list(count);
+
+	for(unsigned i=0;i<count;++i){
+		decltype(Chat::id) id;
+		recv(&id,sizeof(id));
+
+		const std::string &name=get_string();
+		const std::string &creator=get_string();
+		const std::string &description=get_string();
+
+		list.push_back({id,name,creator,description});
+	}
+
+	callback.connect(true,list);
+}
+
+// recv receipt of previously created new chat
+// implements ServerCommand::NEW_CHAT
+void ChatService::servercmd_new_chat(){
+	std::uint8_t worked;
+	recv(&worked,sizeof(worked));
+
+	callback.newchat(worked==1);
+}
+
+// recv receipt of subscription, and message since user last connected
+// implements ServerCommand::SUBSCRIBE
+void ChatService::servercmd_subscribe(){
+	// see if the earlier subscribe command worked
+	std::uint8_t worked;
+	recv(&worked,sizeof(worked));
+	if(!worked){
+		callback.subscribe(false,{});
+		return;
+	}
+
+	std::vector<Message> msgs;
+
+	// get the number of messages
+	std::uint64_t count;
+	recv(&count,sizeof(count));
+
+	for(unsigned long long i=0;i<count;++i){
+		// id
+		decltype(Message::id) id;
+		recv(&id,sizeof(id));
+
+		// type
+		MessageType type;
+		recv(&type,sizeof(type));
+
+		const std::string &msg=get_string();
+		const std::string &sender=get_string();
+
+		// raw size
+		decltype(Message::raw_size) raw_size;
+		recv(&raw_size,sizeof(raw_size));
+
+		unsigned char *raw=NULL;
+		if(raw_size>0){
+			// raw
+			raw=new unsigned char[raw_size];
+			recv(raw,raw_size);
+		}
+
+		msgs.push_back({id,type,msg,sender,raw,raw_size});
+	}
+
+	for(const Message &msg:msgs){
+		callback.message(msg);
+	}
+}
+
+// recv a message from the server
+// implements ServerCommand::MESSAGE
+void ChatService::servercmd_message(){
+	// id
+	decltype(Message::id) id;
+	recv(&id,sizeof(id));
+
+	// msg tpe
+	MessageType type;
+	recv(&type,sizeof(type));
+
+	const std::string &msg=get_string();
+	const std::string &sender=get_string();
+
+	// raw size
+	decltype(Message::raw_size) raw_size;
+	recv(&raw_size,sizeof(raw_size));
+
+	unsigned char *raw=NULL;
+	if(raw_size>0){
+		raw=new unsigned char[raw_size];
+		recv(raw,raw_size);
+	}
+
+	Message message(id,type,msg,sender,raw,raw_size);
+
+	callback.message(message);
+}

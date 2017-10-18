@@ -13,17 +13,20 @@
 
 // command from the server
 enum class ServerCommand:std::uint8_t{
-	HEARTBEAT, // server is sending a heartbeat to client
-	MESSAGE // server is sending a client a message
+	LIST_CHATS, // sending client list of chats
+	NEW_CHAT, // sending client receipt of new chat
+	SUBSCRIBE, // server is confirming successful subscription
+	MESSAGE, // server is sending a client a message
+	HEARTBEAT // server is sending a heartbeat to client
 };
 
 // command from the client
 enum class ClientCommand:std::uint8_t{
-	LIST_CHATS, // client wants the list of chats
-	MESSAGE, // client is sending a message
-	SUBSCRIBE, // client wants to subscribe to a chat
 	INTRODUCE, // client wants to introduce himself
-	NEW_CHAT // client wants to create a new chat
+	LIST_CHATS, // client wants the list of chats
+	NEW_CHAT, // client wants to create a new chat
+	SUBSCRIBE, // client wants to subscribe to a chat
+	MESSAGE // client is sending a message
 };
 
 enum class MessageType:std::uint8_t{
@@ -34,11 +37,12 @@ enum class MessageType:std::uint8_t{
 
 // the message object
 struct Message{
-	Message():raw(NULL),raw_size(0){}
-	Message(MessageType t,const std::string &m,const std::string &s,unsigned char *r,unsigned rs)
-	:type(t),msg(m),sender(s),raw(r),raw_size(rs){}
+	Message():id(0),raw(NULL),raw_size(0){}
+	Message(unsigned long long i,MessageType t,const std::string &m,const std::string &s,unsigned char *r,unsigned rs)
+	:id(i),type(t),msg(m),sender(s),raw(r),raw_size(rs){}
 
 	Message(const Message &rhs){ // copy constructor
+		id=rhs.id;
 		type=rhs.type;
 		msg=rhs.msg;
 		sender=rhs.sender;
@@ -48,6 +52,7 @@ struct Message{
 	}
 
 	Message(Message &&other){ // move constructor
+		id=other.id;
 		type=other.type;
 		msg=other.msg;
 		sender=other.sender;
@@ -56,9 +61,14 @@ struct Message{
 		other.raw=NULL;
 	}
 
+	~Message(){
+		delete[] raw;
+	}
+
 	Message &operator=(Message &&rhs){ // move assignment
 		delete[] raw;
 
+		id=rhs.id;
 		type=rhs.type;
 		msg=std::move(rhs.msg);
 		sender=std::move(rhs.sender);
@@ -74,6 +84,7 @@ struct Message{
 	Message &operator=(const Message &rhs){ // copy assignment
 		delete[] raw;
 
+		id=rhs.id;
 		type=rhs.type;
 		msg=rhs.msg;
 		sender=rhs.sender;
@@ -84,10 +95,7 @@ struct Message{
 		return *this;
 	}
 
-	~Message(){
-		delete[] raw;
-	}
-
+	unsigned long long id;
 	MessageType type;
 	std::string msg;
 	std::string sender;

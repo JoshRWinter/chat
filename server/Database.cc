@@ -60,6 +60,7 @@ std::vector<Chat> Database::get_chats(){
 
 // register a new chat to the database
 void Database::new_chat(const Chat &chat){
+	sqlite3_exec(conn,"BEGIN TRANSACTION",NULL,NULL,NULL);
 	// now create a table for the messages
 	const std::string newtable=std::string("")+
 	"create table "+Database::escape_table_name(chat.name)+" (\n"
@@ -74,8 +75,10 @@ void Database::new_chat(const Chat &chat){
 
 	sqlite3_bind_text(statement,1,chat.name.c_str(),-1,SQLITE_TRANSIENT);
 
-	if(sqlite3_step(statement)!=SQLITE_DONE)
+	if(sqlite3_step(statement)!=SQLITE_DONE){
+		sqlite3_exec(conn,"ROLLBACK",NULL,NULL,NULL);
 		throw DatabaseException(std::string("couldn't create new table for chat \"")+chat.name+"\": "+sqlite3_errmsg(conn));
+	}
 
 	sqlite3_finalize(statement);
 
@@ -89,10 +92,13 @@ void Database::new_chat(const Chat &chat){
 	sqlite3_bind_text(statement,2,chat.creator.c_str(),-1,SQLITE_TRANSIENT);
 	sqlite3_bind_text(statement,3,chat.description.c_str(),-1,SQLITE_TRANSIENT);
 
-	if(sqlite3_step(statement)!=SQLITE_DONE)
+	if(sqlite3_step(statement)!=SQLITE_DONE){
+		sqlite3_exec(conn,"ROLLBACK",NULL,NULL,NULL);
 		throw DatabaseException(std::string("couldn't add new chat to database: ")+sqlite3_errmsg(conn));
+	}
 
 	sqlite3_finalize(statement);
+	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
 }
 
 // get all messages from chat <name> where id is bigger than <since>
@@ -113,6 +119,7 @@ std::vector<Message> Database::get_messages_since(unsigned long long since,const
 			throw DatabaseException(sqlite3_errmsg(conn));
 
 		messages.push_back({
+			(decltype(Message::id))sqlite3_column_int(statement,0),
 			static_cast<MessageType>(sqlite3_column_int(statement,1)),
 			(char*)sqlite3_column_text(statement,2),
 			(char*)sqlite3_column_text(statement,3),

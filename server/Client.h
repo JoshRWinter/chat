@@ -42,11 +42,10 @@ public:
 	Client(const Client&)=delete;
 	void operator=(const Client&)=delete;
 	void operator()();
-	std::thread &get_thread();
+	void join();
 	const std::string &get_name()const;
 	bool dead()const;
 	void kick(const std::string&)const;
-	bool subscribe(unsigned long long,const std::string&);
 
 private:
 	void send(const void*,unsigned);
@@ -54,17 +53,21 @@ private:
 	void loop();
 	void recv_command();
 	void heartbeat();
-	void disconnect();
+	bool subscribe(unsigned long long,const std::string&);
 	std::string get_string();
 	void send_string(const std::string&);
 
 	// net commands implementing ClientCommand::*
+	void clientcmd_introduce();
 	void clientcmd_list_chats();
-	void clientcmd_message();
 	void clientcmd_newchat();
 	void clientcmd_subscribe();
-	void clientcmd_introduce();
+	void clientcmd_message();
 	// net commands implementing ServerCommand::*
+	void servercmd_list_chats(const std::vector<Chat>&);
+	void servercmd_new_chat(bool);
+	void servercmd_subscribe(bool,unsigned long long);
+	void servercmd_message(const Message&);
 	void servercmd_heartbeat();
 
 	Server &parent;

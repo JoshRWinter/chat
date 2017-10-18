@@ -16,7 +16,7 @@ Server::~Server(){
 
 	// join all the client threads
 	for(std::unique_ptr<Client> &client:client_list)
-		client->get_thread().join();
+		client->join();
 }
 
 void Server::accept(){
@@ -32,7 +32,7 @@ void Server::accept(){
 		auto &client = *it;
 
 		if(client->dead()){
-			client->get_thread().join();
+			client->join();
 			it=client_list.erase(it);
 			continue;
 		}

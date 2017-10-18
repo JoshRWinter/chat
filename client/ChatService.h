@@ -44,7 +44,32 @@ private:
 	void process_subscribe(const ChatWorkUnit &unit);
 	void process_send(const ChatWorkUnit &unit);
 
+	// net commands implementing ClientCommand::*
+	void clientcmd_introduce();
+	void clientcmd_list_chats();
+	void clientcmd_new_chat(const Chat&);
+	void clientcmd_subscribe(const Chat&);
+	void clientcmd_message(const Message&);
+	// net commands implementing ServerCommand::*
+	void servercmd_list_chats();
+	void servercmd_new_chat();
+	void servercmd_subscribe();
+	void servercmd_message();
+
+	// registered callbacks
+	struct{
+		// called on successful connect
+		std::function<void(bool,std::vector<Chat>)> connect;
+		// called on successful new chat
+		std::function<void(bool)> newchat;
+		// called on successful subscribe
+		std::function<void(bool,std::vector<Message>)> subscribe;
+		// called when message received
+		std::function<void(Message)> message;
+	}callback;
+
 	net::tcp tcp;
+	std::string name; // user's name
 	std::atomic<bool> working; // service thread currently running
 	std::atomic<int> work_unit_count; // atomically accessible version of units.size()
 	std::queue<const ChatWorkUnit*> units;
