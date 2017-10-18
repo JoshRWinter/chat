@@ -83,6 +83,11 @@ bool net::tcp_server::bind(unsigned short port){
 /* ------------------------------------------- */
 /* ------------------------------------------- */
 
+// default constructor
+net::tcp::tcp(){
+	init();
+}
+
 // SOCKET TCP CLIENT
 // initialize with already opened socket
 net::tcp::tcp(int socket){

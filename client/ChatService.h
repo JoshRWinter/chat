@@ -39,16 +39,16 @@ private:
 	void recv_server_cmd();
 	void reconnect();
 	const ChatWorkUnit *get_work();
-	void process_connect(const ChatWorkUnit &unit);
-	void process_newchat(const ChatWorkUnit &unit);
-	void process_subscribe(const ChatWorkUnit &unit);
-	void process_send(const ChatWorkUnit &unit);
+	void process_connect(const ChatWorkUnitConnect &unit);
+	void process_newchat(const ChatWorkUnitNewChat &unit);
+	void process_subscribe(const ChatWorkUnitSubscribe &unit);
+	void process_send_text(const ChatWorkUnitMessageText &unit);
 
 	// net commands implementing ClientCommand::*
 	void clientcmd_introduce();
 	void clientcmd_list_chats();
-	void clientcmd_new_chat(const Chat&);
-	void clientcmd_subscribe(const Chat&);
+	void clientcmd_new_chat(const std::string&,const std::string&);
+	void clientcmd_subscribe(unsigned long long,const std::string&,unsigned long long);
 	void clientcmd_message(const Message&);
 	// net commands implementing ServerCommand::*
 	void servercmd_list_chats();

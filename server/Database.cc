@@ -44,7 +44,11 @@ std::vector<Chat> Database::get_chats(){
 	sqlite3_stmt *statement;
 	sqlite3_prepare_v2(conn,query,-1,&statement,NULL);
 
-	while(sqlite3_step(statement)!=SQLITE_DONE){
+	int rc;
+	while((rc=sqlite3_step(statement))!=SQLITE_DONE){
+		if(rc!=SQLITE_ROW)
+			throw DatabaseException(sqlite3_errmsg(conn));
+
 		chats.push_back({
 			(unsigned long long)sqlite3_column_int64(statement,0),
 			(char*)sqlite3_column_text(statement,1),
@@ -103,19 +107,18 @@ void Database::new_chat(const Chat &chat){
 
 // get all messages from chat <name> where id is bigger than <since>
 std::vector<Message> Database::get_messages_since(unsigned long long since,const std::string &name){
-	const char *query=
-	"select * from ? where id > ?;";
+	const std::string query=std::string("")+
+	"select * from "+escape_table_name(name)+" where id > ?;";
 
 	sqlite3_stmt *statement;
-	sqlite3_prepare_v2(conn,query,-1,&statement,NULL);
+	sqlite3_prepare_v2(conn,query.c_str(),-1,&statement,NULL);
 
-	sqlite3_bind_text(statement,1,name.c_str(),-1,SQLITE_TRANSIENT);
-	sqlite3_bind_int64(statement,2,since);
+	sqlite3_bind_int64(statement,1,since);
 
 	std::vector<Message> messages;
 	int rc;
 	while((rc=sqlite3_step(statement))!=SQLITE_DONE){
-		if(rc==SQLITE_ERROR)
+		if(rc!=SQLITE_ROW)
 			throw DatabaseException(sqlite3_errmsg(conn));
 
 		messages.push_back({

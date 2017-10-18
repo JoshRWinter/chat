@@ -131,7 +131,7 @@ void Client::heartbeat(){
 
 	if(current-last_heartbeat>HEARTBEAT_FREQUENCY){
 		servercmd_heartbeat();
-		//last_heartbeat=current;
+		last_heartbeat=current;
 	}
 }
 
@@ -178,7 +178,6 @@ void Client::send_string(const std::string &str){
 // implements ClientCommand::INTRODUCE
 void Client::clientcmd_introduce(){
 	name=get_string();
-	log(name+" has connected");
 }
 
 // lists the chats

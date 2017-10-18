@@ -9,15 +9,18 @@ ChatService::ChatService():
 	working(true),
 	work_unit_count(0),
 	handle(std::ref(*this))
-{
-	log("started service thread");
-}
+{}
 
 ChatService::~ChatService(){
 	working.store(false);
-	log("attempting to join service thread");
 	handle.join();
-	log("joined service thread");
+
+	// clear the work list
+	while(units.size()>0){
+		const ChatWorkUnit *unit=units.front();
+		units.pop();
+		delete unit;
+	}
 }
 
 // accessed from multiple threads
@@ -36,7 +39,8 @@ void ChatService::operator()(){
 	}catch(const NetworkException &e){
 		reconnect();
 	}catch(const ShutdownException &e){
-		log_error(std::string("shutting down with ")+std::to_string(work_unit_count.load())+" commands left in the queue!");
+		if(work_unit_count.load()>0)
+			log_error(std::string("shutting down with ")+std::to_string(work_unit_count.load())+" commands left in the queue!");
 	}
 }
 
@@ -100,16 +104,16 @@ void ChatService::loop(){
 			try{
 				switch(unit->type){
 				case WorkUnitType::CONNECT:
-					process_connect(*unit);
+					process_connect(*dynamic_cast<const ChatWorkUnitConnect*>(unit));
 					break;
 				case WorkUnitType::NEW_CHAT:
-					process_newchat(*unit);
+					process_newchat(*dynamic_cast<const ChatWorkUnitNewChat*>(unit));
 					break;
 				case WorkUnitType::SUBSCRIBE:
-					process_subscribe(*unit);
+					process_subscribe(*dynamic_cast<const ChatWorkUnitSubscribe*>(unit));
 					break;
 				case WorkUnitType::MESSAGE:
-					process_send(*unit);
+					process_send_text(*dynamic_cast<const ChatWorkUnitMessageText*>(unit));
 					break;
 				}
 			}catch(const std::exception &e){
@@ -138,11 +142,20 @@ void ChatService::recv_server_cmd(){
 	recv(&type,sizeof(type));
 
 	switch(type){
-	case ServerCommand::HEARTBEAT:
-		// ignore
+	case ServerCommand::LIST_CHATS:
+		servercmd_list_chats();
+		break;
+	case ServerCommand::NEW_CHAT:
+		servercmd_new_chat();
+		break;
+	case ServerCommand::SUBSCRIBE:
+		servercmd_subscribe();
 		break;
 	case ServerCommand::MESSAGE:
-		// todo
+		servercmd_message();
+		break;
+	case ServerCommand::HEARTBEAT:
+		// ignore
 		break;
 	default:
 		// illegal
@@ -181,9 +194,11 @@ const ChatWorkUnit *ChatService::get_work(){
 }
 
 // connect the client to server
-void ChatService::process_connect(const ChatWorkUnit &unit){
-	const ChatWorkUnit::connect &connect=std::get<ChatWorkUnit::connect>(unit.work);
-	if(tcp.target(connect.target,CHAT_PORT)){
+void ChatService::process_connect(const ChatWorkUnitConnect &unit){
+	callback.connect=unit.callback;
+
+	// connect to server
+	if(tcp.target(unit.target,CHAT_PORT)){
 		time_t current=time(NULL);
 		bool connected=false;
 		// 5 second timeout
@@ -193,71 +208,33 @@ void ChatService::process_connect(const ChatWorkUnit &unit){
 		}
 
 		if(connected){
-			// tell server my name
-			ClientCommand type=ClientCommand::INTRODUCE;
-			send(&type,sizeof(type));
-			send_string(connect.myname);
+			// introduce myself
+			name=unit.myname;
+			clientcmd_introduce();
 
-			// ask the server for a list of chats
-			type=ClientCommand::LIST_CHATS;
-			send(&type,sizeof(type));
-			std::uint64_t count;
-			recv(&count,sizeof(count));
-			log(std::string("receiving ")+std::to_string(count)+" chats");
-
-			std::vector<Chat> list;
-			for(std::uint64_t i=0;i<count;++i){
-				// get the id
-				std::uint64_t id;
-				recv(&id,sizeof(id));
-
-				// get the name
-				const std::string &name=get_string();
-
-				// get the creator
-				const std::string &creator=get_string();
-
-				// get the description
-				const std::string &description=get_string();
-
-				list.push_back({id,name,creator,description});
-				log("got 1");
-			}
-
-			// do the callback
-			connect.callback(true,list);
-			return;
+			// request chat list
+			clientcmd_list_chats();
 		}
 	}
-
-	connect.callback(false,{});
 }
 
 // ask the server to create new chat
-void ChatService::process_newchat(const ChatWorkUnit &unit){
-	const ChatWorkUnit::newchat &newchat=std::get<1>(unit.work);
-
-	ClientCommand type=ClientCommand::NEW_CHAT;
-	send(&type,sizeof(type));
-
-	// send the name of the chat
-	send_string(newchat.chat.name);
-	// send the creator of the chat
-	send_string(newchat.chat.creator);
-	// send the description of the chat
-	send_string(newchat.chat.description);
-
-	uint8_t success;
-	recv(&success,sizeof(success));
-	newchat.callback(success==1);
+void ChatService::process_newchat(const ChatWorkUnitNewChat &unit){
+	callback.newchat=unit.callback;
+	clientcmd_new_chat(unit.name,unit.desc);
 }
 
 // subscribe to a chat
-void ChatService::process_subscribe(const ChatWorkUnit &unit){
+void ChatService::process_subscribe(const ChatWorkUnitSubscribe &unit){
+	callback.subscribe=unit.callback;
+	callback.message=unit.msg_callback;
+	clientcmd_subscribe(unit.id,unit.name,0);
 }
 
 // send a message
-void ChatService::process_send(const ChatWorkUnit &unit){
+void ChatService::process_send_text(const ChatWorkUnitMessageText &unit){
+	Message msg(0,MessageType::TEXT,unit.text,name,NULL,0);
+	clientcmd_message(msg);
 }
 
 // tell the server user's name
@@ -278,25 +255,25 @@ void ChatService::clientcmd_list_chats(){
 
 // tell the server to make a new chat
 // implements ClientCommand::NEW_CHAT
-void ChatService::clientcmd_new_chat(const Chat &chat){
+void ChatService::clientcmd_new_chat(const std::string &chatname,const std::string &desc){
 	ClientCommand type=ClientCommand::NEW_CHAT;
 	send(&type,sizeof(type));
 
-	send_string(chat.name);
-	send_string(chat.creator);
-	send_string(chat.description);
+	send_string(chatname);
+	send_string(name);
+	send_string(desc);
 }
 
 // subscribe to a chat
 // implements ClientCommand::SUBSCRIBE
-void ChatService::clientcmd_subscribe(const Chat &chat){
+void ChatService::clientcmd_subscribe(unsigned long long id,const std::string &chatname,unsigned long long latest){
 	ClientCommand type=ClientCommand::SUBSCRIBE;
 	send(&type,sizeof(type));
 
-	send(&chat.id,sizeof(chat.id));
-	send_string(chat.name);
+	send(&id,sizeof(id));
+	send_string(chatname);
 	// send the highest message that exists in the database
-	std::uint64_t max=0;
+	std::uint64_t max=latest;
 	send(&max,sizeof(max));
 }
 
@@ -309,9 +286,9 @@ void ChatService::clientcmd_message(const Message &msg){
 	send(&msg.type,sizeof(msg.type));
 	send_string(msg.msg);
 
-	// if the msg is a file or image, send the file/image data
-	if(msg.type==MessageType::IMAGE||msg.type==MessageType::FILE){
-		send(&msg.raw_size,sizeof(msg.raw_size));
+	// raw size
+	send(&msg.raw_size,sizeof(msg.raw_size));
+	if(msg.raw_size>0){
 		send(msg.raw,msg.raw_size);
 	}
 }
@@ -323,7 +300,7 @@ void ChatService::servercmd_list_chats(){
 	std::uint64_t count;
 	recv(&count,sizeof(count));
 
-	std::vector<Chat> list(count);
+	std::vector<Chat> list;
 
 	for(unsigned i=0;i<count;++i){
 		decltype(Chat::id) id;
@@ -391,9 +368,7 @@ void ChatService::servercmd_subscribe(){
 		msgs.push_back({id,type,msg,sender,raw,raw_size});
 	}
 
-	for(const Message &msg:msgs){
-		callback.message(msg);
-	}
+	callback.subscribe(true,msgs);
 }
 
 // recv a message from the server

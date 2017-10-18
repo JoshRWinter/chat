@@ -26,7 +26,7 @@ private:
 
 class tcp{
 public:
-	tcp()=default;
+	tcp();
 	tcp(const std::string&,unsigned short);
 	tcp(int);
 	tcp(const tcp&)=delete;
