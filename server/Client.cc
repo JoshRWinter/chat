@@ -314,6 +314,8 @@ void Client::servercmd_list_chats(const std::vector<Chat> &chats){
 	ServerCommand type=ServerCommand::LIST_CHATS;
 	send(&type,sizeof(type));
 
+	send_string(parent.get_name());
+
 	// send how many chats
 	std::uint64_t count=chats.size();
 	send(&count,sizeof(count));

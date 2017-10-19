@@ -296,6 +296,10 @@ void ChatService::clientcmd_message(const Message &msg){
 // recv a list of chats from server
 // implements ServerCommand::LIST_CHATS
 void ChatService::servercmd_list_chats(){
+	// get the server's name
+	servername=get_string();
+	log(std::string("servername is ")+servername);
+
 	// recv the number of chats
 	std::uint64_t count;
 	recv(&count,sizeof(count));

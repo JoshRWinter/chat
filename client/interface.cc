@@ -33,8 +33,10 @@ int main(){
 
 	client.connect("localhost","Josh Winter",[&client](bool success, std::vector<Chat> list){
 		if(success){
-			if(list.size()==0)
+			if(list.size()==0){
 				print("no chats");
+				return;
+			}
 			for(const Chat &chat:list){
 				print(std::string("id: ")+std::to_string(chat.id)+" name: "+chat.name+" creator: "+chat.creator+" description: "+chat.description);
 			}

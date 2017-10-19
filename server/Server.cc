@@ -8,6 +8,7 @@ Server::Server(unsigned short port,const std::string &dbname):tcp(port),db(dbnam
 	if(!tcp)
 		throw ServerException(std::string("can't bind to port ")+std::to_string(port));
 
+	servername=db.get_name();
 	chats=db.get_chats();
 }
 
@@ -45,6 +46,10 @@ bool Server::running()const{
 	return good.load();
 }
 
+const std::string &Server::get_name(){
+	return servername;
+}
+
 // return a copy of the chats vector
 std::vector<Chat> Server::get_chats(){
 	std::lock_guard<std::mutex> lock(mutex);
@@ -65,14 +70,15 @@ void Server::new_chat(const Chat &chat){
 	chats=db.get_chats();
 }
 
-void Server::new_msg(const Chat &chat,const Message &msg){
+void Server::new_msg(const Chat &chat,Message &msg){
 	std::lock_guard<std::mutex> lock(mutex);
 
 	// insert into the database
 	try{
-		db.new_msg(chat,msg);
+		msg.id=db.new_msg(chat,msg);
 	}catch(const DatabaseException &e){
 		log_error(e.what());
+		return;
 	}
 
 	// inform all subscribed clients of the new message

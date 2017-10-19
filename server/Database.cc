@@ -1,4 +1,7 @@
 #include <fstream>
+#include <cstdlib>
+
+#include <time.h>
 
 #include "Database.h"
 #include "log.h"
@@ -13,6 +16,34 @@ Database::Database(const std::string &fname){
 	}
 
 	if(create){
+		// create a random server name
+		std::srand(time(NULL));
+		char servername[26];
+		for(int i=0;i<25;++i){
+			char c='A'+(std::rand()%26);
+			servername[i]=c;
+		}
+		servername[25]=0;
+
+		// store it in the db
+		char *err=NULL;
+		const char *makesrvrname=
+		"create table servername(\n"
+		"name varchar(25) not null);";
+		if(sqlite3_exec(conn,makesrvrname,NULL,NULL,&err)){
+			const std::string msg(err);
+			sqlite3_free(err);
+			throw DatabaseException(msg);
+		}
+		const std::string storename=std::string("")+
+		"insert into servername values\n"
+		"('"+servername+"');";
+		if(sqlite3_exec(conn,storename.c_str(),NULL,NULL,&err)){
+			const std::string msg(err);
+			sqlite3_free(err);
+			throw DatabaseException(msg);
+		}
+
 		// create the main chats table
 		const char *stmt=
 		"create table chats(\n"
@@ -22,9 +53,8 @@ Database::Database(const std::string &fname){
 		"description varchar(511) not null\n"
 		");";
 
-		char *err;
 		if(sqlite3_exec(conn,stmt,NULL,NULL,&err)){
-			std::string msg(err);
+			const std::string msg(err);
 			sqlite3_free(err);
 			throw DatabaseException(msg);
 		}
@@ -34,6 +64,32 @@ Database::Database(const std::string &fname){
 Database::~Database(){
 	sqlite3_close(conn);
 }
+
+// get the name of the server
+std::string Database::get_name(){
+	const char *query=
+	"select name from servername;";
+
+	sqlite3_stmt *statement;
+	sqlite3_prepare_v2(conn,query,-1,&statement,NULL);
+
+	if(sqlite3_step(statement)!=SQLITE_ROW){
+		sqlite3_finalize(statement);
+		throw DatabaseException(sqlite3_errmsg(conn));
+	}
+
+	std::string dbname=(char*)sqlite3_column_text(statement,0);
+
+	if(sqlite3_step(statement)!=SQLITE_DONE){
+		sqlite3_finalize(statement);
+		throw DatabaseException("more than one record in servername table!");
+	}
+
+	sqlite3_finalize(statement);
+
+	return dbname;
+}
+
 
 // return a vector of all the chats currently registered in the database
 std::vector<Chat> Database::get_chats(){
@@ -46,8 +102,10 @@ std::vector<Chat> Database::get_chats(){
 
 	int rc;
 	while((rc=sqlite3_step(statement))!=SQLITE_DONE){
-		if(rc!=SQLITE_ROW)
+		if(rc!=SQLITE_ROW){
+			sqlite3_finalize(statement);
 			throw DatabaseException(sqlite3_errmsg(conn));
+		}
 
 		chats.push_back({
 			(unsigned long long)sqlite3_column_int64(statement,0),
@@ -81,6 +139,7 @@ void Database::new_chat(const Chat &chat){
 
 	if(sqlite3_step(statement)!=SQLITE_DONE){
 		sqlite3_exec(conn,"ROLLBACK",NULL,NULL,NULL);
+		sqlite3_finalize(statement);
 		throw DatabaseException(std::string("couldn't create new table for chat \"")+chat.name+"\": "+sqlite3_errmsg(conn));
 	}
 
@@ -88,7 +147,7 @@ void Database::new_chat(const Chat &chat){
 
 	const char *sqlstatement=
 	"insert into chats(name,creator,description) values\n"
-	"(?,?,?)";
+	"(?,?,?);";
 
 	sqlite3_prepare_v2(conn,sqlstatement,-1,&statement,NULL);
 
@@ -98,6 +157,7 @@ void Database::new_chat(const Chat &chat){
 
 	if(sqlite3_step(statement)!=SQLITE_DONE){
 		sqlite3_exec(conn,"ROLLBACK",NULL,NULL,NULL);
+		sqlite3_finalize(statement);
 		throw DatabaseException(std::string("couldn't add new chat to database: ")+sqlite3_errmsg(conn));
 	}
 
@@ -106,10 +166,10 @@ void Database::new_chat(const Chat &chat){
 }
 
 // insert a new message into database
-void Database::new_msg(const Chat &chat,const Message &msg){
+unsigned long long Database::new_msg(const Chat &chat,const Message &msg){
 	std::string insert=std::string("")+
 	"insert into "+Database::escape_table_name(chat.name)+" (type,message,name) values\n"
-	"(?,?,?)";
+	"(?,?,?);";
 
 	sqlite3_stmt *statement;
 	sqlite3_prepare_v2(conn,insert.c_str(),-1,&statement,NULL);
@@ -118,10 +178,28 @@ void Database::new_msg(const Chat &chat,const Message &msg){
 	sqlite3_bind_text(statement,2,msg.msg.c_str(),-1,SQLITE_TRANSIENT);
 	sqlite3_bind_text(statement,3,msg.sender.c_str(),-1,SQLITE_TRANSIENT);
 
-	if(sqlite3_step(statement)!=SQLITE_DONE)
+	if(sqlite3_step(statement)!=SQLITE_DONE){
+		sqlite3_finalize(statement);
 		throw DatabaseException(sqlite3_errmsg(conn));
+	}
 
 	sqlite3_finalize(statement);
+
+	// get id of last inserted item
+	const std::string query=std::string("")+
+	"select max(id) from "+Database::escape_table_name(chat.name)+";";
+	sqlite3_prepare_v2(conn,query.c_str(),-1,&statement,NULL);
+
+	if(sqlite3_step(statement)!=SQLITE_ROW){
+		sqlite3_finalize(statement);
+		throw DatabaseException(sqlite3_errmsg(conn));
+	}
+
+	unsigned id=sqlite3_column_int(statement,0);
+
+	sqlite3_finalize(statement);
+
+	return id;
 }
 
 // get all messages from chat <name> where id is bigger than <since>
@@ -137,8 +215,10 @@ std::vector<Message> Database::get_messages_since(unsigned long long since,const
 	std::vector<Message> messages;
 	int rc;
 	while((rc=sqlite3_step(statement))!=SQLITE_DONE){
-		if(rc!=SQLITE_ROW)
+		if(rc!=SQLITE_ROW){
+			sqlite3_finalize(statement);
 			throw DatabaseException(sqlite3_errmsg(conn));
+		}
 
 		messages.push_back({
 			(decltype(Message::id))sqlite3_column_int(statement,0),

@@ -69,6 +69,7 @@ private:
 	}callback;
 
 	net::tcp tcp;
+	std::string servername; // name of current server that this is connected to
 	std::string name; // user's name
 	std::atomic<bool> working; // service thread currently running
 	std::atomic<int> work_unit_count; // atomically accessible version of units.size()
