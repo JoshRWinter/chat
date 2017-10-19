@@ -299,6 +299,10 @@ void Client::clientcmd_message(){
 		recv(raw,raw_size);
 	}
 
+	// don't let messages of zero length through
+	if(message.length()==0)
+		return;
+
 	Message msg(0,type,message,name,raw,raw_size);
 
 	parent.new_msg(subscribed,msg);
