@@ -1,4 +1,4 @@
-CPPFLAGS := -c -g -std=c++17 -fpic -Wall -pedantic
+CPPFLAGS := -c -g -std=c++11 -fpic -Wall -pedantic
 LFLAGS := -lsqlite3 -pthread -shared
 COMPILER := g++
 REMOVE := rm
