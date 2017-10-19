@@ -9,23 +9,10 @@ Client::Client(Server &p,int sockfd):
 	parent(p),
 	tcp(sockfd),
 	disconnected(false),
+	out_queue_len(0),
 	last_heartbeat(0),
 	thread(std::ref(*this)) // start a separate event thread for this client (operator())
 {}
-
-// join the client thread (this fn is called from server thread)
-void Client::join(){
-	thread.join();
-}
-
-const std::string &Client::get_name()const{
-	return name;
-}
-
-// has this client been disconnected (called from server thread)
-bool Client::dead()const{
-	return disconnected.load();
-}
 
 // entry point for the client thread
 void Client::operator()(){
@@ -42,9 +29,36 @@ void Client::operator()(){
 	disconnected.store(true);
 }
 
+// join the client thread (this fn is called from server thread)
+void Client::join(){
+	thread.join();
+}
+
+const std::string &Client::get_name()const{
+	return name;
+}
+
+// has this client been disconnected (called from server thread)
+bool Client::dead()const{
+	return disconnected.load();
+}
+
+// is a client subscribed to <chat>
+bool Client::is_subscribed(const Chat &chat){
+	return chat==subscribed;
+}
+
 // kick this client
 void Client::kick(const std::string &reason)const{
 	throw ClientKickException(std::string("kicking ")+name+" because \""+reason+"\"");
+}
+
+// add a message to the out queue
+void Client::addmsg(const Message &msg){
+	std::lock_guard<std::mutex> lock(out_queue_lock);
+
+	out_queue.push(msg);
+	++out_queue_len;
 }
 
 // send network data
@@ -85,10 +99,32 @@ void Client::loop(){
 
 		heartbeat();
 
+		// recv client commands
 		recv_command();
+
+		// empty the out queue
+		dispatch();
 
 		Server::sleep();
 	}
+}
+
+// empty the out queue
+void Client::dispatch(){
+	if(out_queue_len.load()<1)
+		return;
+
+	std::lock_guard<std::mutex> lock(out_queue_lock);
+	while(out_queue.size()>0){
+		const Message &msg=out_queue.front();
+
+		// dispatch
+		servercmd_message(msg);
+
+		out_queue.pop();
+	}
+
+	out_queue_len.store(0);
 }
 
 // recv commands from the client
@@ -265,7 +301,7 @@ void Client::clientcmd_message(){
 
 	Message msg(0,type,message,name,raw,raw_size);
 
-	log(name+" says "+msg.msg);
+	parent.new_msg(subscribed,msg);
 }
 
 // send the client a list of chats
@@ -324,8 +360,7 @@ void Client::servercmd_subscribe(bool success,unsigned long long max){
 		send(&msg.id,sizeof(msg.id));
 
 		// send the message type
-		std::uint8_t type=static_cast<std::uint8_t>(msg.type);
-		send(&type,sizeof(type));
+		send(&msg.type,sizeof(type));
 
 		// send msg
 		send_string(msg.msg);
@@ -336,6 +371,10 @@ void Client::servercmd_subscribe(bool success,unsigned long long max){
 		// send raw
 		std::uint64_t raw_size=0;
 		send(&raw_size,sizeof(raw_size));
+
+		if(raw_size>0){
+			send(msg.raw,raw_size);
+		}
 	}
 }
 

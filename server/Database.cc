@@ -105,6 +105,25 @@ void Database::new_chat(const Chat &chat){
 	sqlite3_exec(conn,"COMMIT",NULL,NULL,NULL);
 }
 
+// insert a new message into database
+void Database::new_msg(const Chat &chat,const Message &msg){
+	std::string insert=std::string("")+
+	"insert into "+Database::escape_table_name(chat.name)+" (type,message,name) values\n"
+	"(?,?,?)";
+
+	sqlite3_stmt *statement;
+	sqlite3_prepare_v2(conn,insert.c_str(),-1,&statement,NULL);
+
+	sqlite3_bind_int(statement,1,static_cast<int>(msg.type));
+	sqlite3_bind_text(statement,2,msg.msg.c_str(),-1,SQLITE_TRANSIENT);
+	sqlite3_bind_text(statement,3,msg.sender.c_str(),-1,SQLITE_TRANSIENT);
+
+	if(sqlite3_step(statement)!=SQLITE_DONE)
+		throw DatabaseException(sqlite3_errmsg(conn));
+
+	sqlite3_finalize(statement);
+}
+
 // get all messages from chat <name> where id is bigger than <since>
 std::vector<Message> Database::get_messages_since(unsigned long long since,const std::string &name){
 	const std::string query=std::string("")+

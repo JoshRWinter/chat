@@ -65,6 +65,23 @@ void Server::new_chat(const Chat &chat){
 	chats=db.get_chats();
 }
 
+void Server::new_msg(const Chat &chat,const Message &msg){
+	std::lock_guard<std::mutex> lock(mutex);
+
+	// insert into the database
+	try{
+		db.new_msg(chat,msg);
+	}catch(const DatabaseException &e){
+		log_error(e.what());
+	}
+
+	// inform all subscribed clients of the new message
+	for(std::unique_ptr<Client> &client:client_list){
+		if(client->is_subscribed(chat))
+			client->addmsg(msg);
+	}
+}
+
 std::vector<Message> Server::get_messages_since(unsigned long long id,const std::string &name){
 	std::lock_guard<std::mutex> lock(mutex);
 

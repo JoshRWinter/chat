@@ -31,6 +31,7 @@ public:
 	Database &operator=(const Database&)=delete;
 	std::vector<Chat> get_chats();
 	void new_chat(const Chat&);
+	void new_msg(const Chat&,const Message&);
 	std::vector<Message> get_messages_since(unsigned long long,const std::string&);
 	bool valid_table_name(const std::string&);
 

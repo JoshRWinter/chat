@@ -6,6 +6,8 @@
 #include <thread>
 #include <ctime>
 #include <exception>
+#include <mutex>
+#include <queue>
 
 class Client;
 class Server;
@@ -45,12 +47,15 @@ public:
 	void join();
 	const std::string &get_name()const;
 	bool dead()const;
+	bool is_subscribed(const Chat&);
 	void kick(const std::string&)const;
+	void addmsg(const Message&);
 
 private:
 	void send(const void*,unsigned);
 	void recv(void*,unsigned);
 	void loop();
+	void dispatch();
 	void recv_command();
 	void heartbeat();
 	bool subscribe(unsigned long long,const std::string&);
@@ -73,10 +78,13 @@ private:
 	Server &parent;
 	net::tcp tcp;
 	std::atomic<bool> disconnected;
+	std::queue<Message> out_queue; // pending messages to be sent
+	std::atomic<int> out_queue_len; // lock free length of out_queue
+	std::mutex out_queue_lock; // guards access to <out_queue>
 	time_t last_heartbeat;
 	std::thread thread;
-	std::string name;
-	Chat subscribed;
+	std::string name; // client name
+	Chat subscribed; // current subscribed chat
 };
 
 #endif // CLIENT_H

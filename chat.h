@@ -38,7 +38,7 @@ enum class MessageType:std::uint8_t{
 // the message object
 struct Message{
 	Message():id(0),raw(NULL),raw_size(0){}
-	Message(unsigned long long i,MessageType t,const std::string &m,const std::string &s,unsigned char *r,unsigned rs)
+	Message(unsigned long long i,MessageType t,const std::string &m,const std::string &s,unsigned char *r,unsigned long long rs)
 	:id(i),type(t),msg(m),sender(s),raw(r),raw_size(rs){}
 
 	Message(const Message &rhs){ // copy constructor
@@ -47,8 +47,13 @@ struct Message{
 		msg=rhs.msg;
 		sender=rhs.sender;
 		raw_size=rhs.raw_size;
-		raw=new unsigned char[raw_size];
-		memcpy(raw,rhs.raw,raw_size);
+		if(raw_size>0){
+			raw=new unsigned char[raw_size];
+			memcpy(raw,rhs.raw,raw_size);
+		}
+		else{
+			raw=NULL;
+		}
 	}
 
 	Message(Message &&other){ // move constructor
@@ -56,6 +61,7 @@ struct Message{
 		type=other.type;
 		msg=other.msg;
 		sender=other.sender;
+		raw_size=other.raw_size;
 		raw=other.raw;
 
 		other.raw=NULL;
@@ -88,9 +94,13 @@ struct Message{
 		type=rhs.type;
 		msg=rhs.msg;
 		sender=rhs.sender;
-		raw=new unsigned char[rhs.raw_size];
-		memcpy(raw,rhs.raw,rhs.raw_size);
 		raw_size=rhs.raw_size;
+		if(raw_size>0){
+			raw=new unsigned char[rhs.raw_size];
+			memcpy(raw,rhs.raw,rhs.raw_size);
+		}
+		else
+			raw=NULL;
 
 		return *this;
 	}
@@ -100,7 +110,7 @@ struct Message{
 	std::string msg;
 	std::string sender;
 	unsigned char *raw;
-	unsigned raw_size;
+	unsigned long long raw_size;
 };
 
 // describes a "chat" the meta data for a group chat
