@@ -305,7 +305,8 @@ void Client::clientcmd_message(){
 
 	Message msg(0,type,message,name,raw,raw_size);
 
-	parent.new_msg(subscribed,msg);
+	if(subscribed)
+		parent.new_msg(subscribed.value(),msg);
 }
 
 // send the client a list of chats
@@ -354,7 +355,7 @@ void Client::servercmd_subscribe(bool success,unsigned long long max){
 
 	// send all messages in the chat where message.id > max
 	// basically getting the client back up to date since they were last connected
-	std::vector<Message> since=parent.get_messages_since(max,subscribed.name);
+	std::vector<Message> since=parent.get_messages_since(max,subscribed.value().name);
 
 	// send the count
 	std::uint64_t count=since.size();

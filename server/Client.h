@@ -8,6 +8,7 @@
 #include <exception>
 #include <mutex>
 #include <queue>
+#include <optional>
 
 class Client;
 class Server;
@@ -84,7 +85,7 @@ private:
 	time_t last_heartbeat;
 	std::thread thread;
 	std::string name; // client name
-	Chat subscribed; // current subscribed chat
+	std::optional<Chat> subscribed; // current subscribed chat
 };
 
 #endif // CLIENT_H
