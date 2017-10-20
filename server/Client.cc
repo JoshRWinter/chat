@@ -172,12 +172,12 @@ void Client::heartbeat(){
 }
 
 // subscribe the client to chat with name <name> and id <cid>
-bool Client::subscribe(unsigned long long cid,const std::string &name){
+bool Client::subscribe(const std::string &name){
 	std::vector<Chat> chats=parent.get_chats();
 
 	// find the proper chat
 	for(const Chat &chat:chats){
-		if(chat.id==cid&&chat.name==name){
+		if(chat.name==name){
 			subscribed=chat;
 			return true;
 		}
@@ -251,15 +251,11 @@ void Client::clientcmd_newchat(){
 // allow the client to subscribe to a chat
 // implements ClientCommand::SUBSCRIBE
 void Client::clientcmd_subscribe(){
-	// get the id of the desired chat
-	std::uint64_t cid;
-	recv(&cid,sizeof(cid));
-
 	// get the name of the desired chat
 	std::string name=get_string();
 
 	// try to subscribe the client
-	bool success=subscribe(cid,name);
+	bool success=subscribe(name);
 
 	// recv the max message id in that chat
 	std::uint64_t max;

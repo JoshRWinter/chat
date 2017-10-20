@@ -59,7 +59,7 @@ private:
 	void dispatch();
 	void recv_command();
 	void heartbeat();
-	bool subscribe(unsigned long long,const std::string&);
+	bool subscribe(const std::string&);
 	std::string get_string();
 	void send_string(const std::string&);
 

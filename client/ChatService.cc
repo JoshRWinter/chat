@@ -26,7 +26,7 @@ ChatService::~ChatService(){
 
 // accessed from multiple threads
 // takes ownership of <unit>
-void ChatService::add_work(ChatWorkUnit *unit){
+void ChatService::add_work(const ChatWorkUnit *unit){
 	std::lock_guard<std::mutex> lock(mutex);
 
 	units.push(unit);
@@ -39,6 +39,8 @@ void ChatService::operator()(){
 		loop();
 	}catch(const NetworkException &e){
 		reconnect();
+		// recurse
+		this->operator()();
 	}catch(const ShutdownException &e){
 		if(work_unit_count.load()>0)
 			log_error(std::string("shutting down with ")+std::to_string(work_unit_count.load())+" commands left in the queue!");
@@ -105,28 +107,21 @@ void ChatService::loop(){
 	while(working.load()){
 		// process work units
 		if(work_unit_count.load()>0){
-			ChatWorkUnit *unit=get_work();
-
-			try{
-				switch(unit->type){
-				case WorkUnitType::CONNECT:
-					process_connect(*dynamic_cast<const ChatWorkUnitConnect*>(unit));
-					break;
-				case WorkUnitType::NEW_CHAT:
-					process_newchat(*dynamic_cast<const ChatWorkUnitNewChat*>(unit));
-					break;
-				case WorkUnitType::SUBSCRIBE:
-					process_subscribe(*dynamic_cast<const ChatWorkUnitSubscribe*>(unit));
-					break;
-				case WorkUnitType::MESSAGE:
-					process_send_message(*dynamic_cast<ChatWorkUnitMessage*>(unit));
-					break;
-				}
-			}catch(const std::exception &e){
-				log_error(e.what());
-				// add the unit back to the queue to retry again later
-				add_work(unit);
-				throw;
+			const ChatWorkUnit *unit=get_work();
+			switch(unit->type){
+			case WorkUnitType::CONNECT:
+				process_connect(*dynamic_cast<const ChatWorkUnitConnect*>(unit));
+				break;
+			case WorkUnitType::NEW_CHAT:
+				process_newchat(*dynamic_cast<const ChatWorkUnitNewChat*>(unit));
+				break;
+			case WorkUnitType::SUBSCRIBE:
+				process_subscribe(*dynamic_cast<const ChatWorkUnitSubscribe*>(unit));
+				break;
+			case WorkUnitType::MESSAGE:
+			log("sending message");
+				process_send_message(*dynamic_cast<const ChatWorkUnitMessage*>(unit));
+				break;
 			}
 
 			// unit was processed successfully
@@ -171,28 +166,41 @@ void ChatService::recv_server_cmd(){
 
 // try to reconnect
 void ChatService::reconnect(){
-	log_error("lost connection! attempting to reconnect");
+	try{
+		log_error("lost connection! attempting to reconnect");
 
-	bool reconnected=false;
-	while(!reconnected){
-		reconnected=tcp.connect();
+		tcp.target(target,CHAT_PORT);
 
-		// see if services needs to shut down
-		if(!working.load())
-			throw ShutdownException();
+		bool reconnected=false;
+		while(!reconnected){
+			reconnected=tcp.connect();
 
-		// don't burn out the cpu
-		std::this_thread::sleep_for(std::chrono::milliseconds(50));
-	}
+			// see if services needs to shut down
+			if(!working.load())
+				throw ShutdownException();
 
-	log("reconnected successfully");
+			// don't burn out the cpu
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		}
+
+		// reconnect to the server
+		auto unit=new ChatWorkUnitConnect(target,name,callback.connect);
+		add_work(unit);
+		// resubscribe, if necessary
+		if(chatname!=""){
+			auto unit2=new ChatWorkUnitSubscribe(chatname,[](bool,std::vector<Message>){},callback.message);
+			add_work(unit2);
+		}
+
+		log("reconnected successfully");
+	}catch(const ShutdownException &e){}
 }
 
 // get the first command in the list, then erase it from the list, the return it
-ChatWorkUnit *ChatService::get_work(){
+const ChatWorkUnit *ChatService::get_work(){
 	std::lock_guard<std::mutex> lock(mutex);
 
-	ChatWorkUnit *unit=units.front();
+	const ChatWorkUnit *unit=units.front();
 	units.pop();
 	--work_unit_count;
 
@@ -202,6 +210,9 @@ ChatWorkUnit *ChatService::get_work(){
 // connect the client to server
 void ChatService::process_connect(const ChatWorkUnitConnect &unit){
 	callback.connect=unit.callback;
+
+	// store this for later
+	target=unit.target;
 
 	// connect to server
 	if(tcp.target(unit.target,CHAT_PORT)){
@@ -237,14 +248,19 @@ void ChatService::process_subscribe(const ChatWorkUnitSubscribe &unit){
 
 	callback.subscribe=unit.callback;
 	callback.message=unit.msg_callback;
-	clientcmd_subscribe(unit.id,unit.name,db.get_latest_msg(unit.name));
+	clientcmd_subscribe(unit.name,db.get_latest_msg(unit.name));
 	chatname=unit.name; // store chatname for later
 }
 
 // send a message
-void ChatService::process_send_message(ChatWorkUnitMessage&unit){
-	Message msg(0,unit.type,unit.text,name,unit.raw,unit.raw_size);
-	unit.raw=NULL;
+void ChatService::process_send_message(const ChatWorkUnitMessage&unit){
+	unsigned char *raw=NULL;
+	if(unit.raw!=NULL){
+		raw=new unsigned char[unit.raw_size];
+		memcpy(raw,unit.raw,unit.raw_size);
+	}
+
+	Message msg(0,unit.type,unit.text,name,raw,unit.raw_size);
 	clientcmd_message(msg);
 }
 
@@ -277,11 +293,10 @@ void ChatService::clientcmd_new_chat(const std::string &chatname,const std::stri
 
 // subscribe to a chat
 // implements ClientCommand::SUBSCRIBE
-void ChatService::clientcmd_subscribe(unsigned long long id,const std::string &chatname,unsigned long long latest){
+void ChatService::clientcmd_subscribe(const std::string &chatname,unsigned long long latest){
 	ClientCommand type=ClientCommand::SUBSCRIBE;
 	send(&type,sizeof(type));
 
-	send(&id,sizeof(id));
 	send_string(chatname);
 	// send the highest message that exists in the database
 	std::uint64_t max=latest;

@@ -52,7 +52,7 @@ int main(){
 				print(std::string("received msg ")+std::to_string(msg.id)+" "+msg.msg);
 			};
 
-			client.subscribe(list[0].id,list[0].name,subscribe_callback,msg_callback);
+			client.subscribe(list[0].name,subscribe_callback,msg_callback);
 		}
 		else
 			print("couldn't connect");

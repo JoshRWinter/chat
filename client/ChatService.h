@@ -28,7 +28,7 @@ class ChatService{
 public:
 	explicit ChatService(const std::string&);
 	~ChatService();
-	void add_work(ChatWorkUnit*);
+	void add_work(const ChatWorkUnit*);
 	void operator()();
 	void send(const void*,int);
 	void recv(void*,int);
@@ -39,17 +39,17 @@ private:
 	void loop();
 	void recv_server_cmd();
 	void reconnect();
-	ChatWorkUnit *get_work();
+	const ChatWorkUnit *get_work();
 	void process_connect(const ChatWorkUnitConnect &unit);
 	void process_newchat(const ChatWorkUnitNewChat &unit);
 	void process_subscribe(const ChatWorkUnitSubscribe &unit);
-	void process_send_message(ChatWorkUnitMessage&unit);
+	void process_send_message(const ChatWorkUnitMessage&unit);
 
 	// net commands implementing ClientCommand::*
 	void clientcmd_introduce();
 	void clientcmd_list_chats();
 	void clientcmd_new_chat(const std::string&,const std::string&);
-	void clientcmd_subscribe(unsigned long long,const std::string&,unsigned long long);
+	void clientcmd_subscribe(const std::string&,unsigned long long);
 	void clientcmd_message(const Message&);
 	// net commands implementing ServerCommand::*
 	void servercmd_list_chats();
@@ -71,12 +71,13 @@ private:
 
 	Database db;
 	net::tcp tcp;
+	std::string target; // network address of server
 	std::string servername; // name of current server that this is connected to
 	std::string name; // user's name
 	std::string chatname; // subscribed chat
 	std::atomic<bool> working; // service thread currently running
 	std::atomic<int> work_unit_count; // atomically accessible version of units.size()
-	std::queue<ChatWorkUnit*> units;
+	std::queue<const ChatWorkUnit*> units;
 	std::mutex mutex; // guards access to <units>
 	std::thread handle;
 	std::function<void(Message)> msg_callback;

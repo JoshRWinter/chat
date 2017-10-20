@@ -19,8 +19,8 @@ void ChatClient::newchat(const std::string &name,const std::string &desc,std::fu
 }
 
 // subscribe to a chat
-void ChatClient::subscribe(unsigned long long id,const std::string &name,std::function<void(bool,std::vector<Message>)> success_callback,std::function<void(Message)> msg_callback){
-	auto unit=new ChatWorkUnitSubscribe(id,name,success_callback,msg_callback);
+void ChatClient::subscribe(const std::string &name,std::function<void(bool,std::vector<Message>)> success_callback,std::function<void(Message)> msg_callback){
+	auto unit=new ChatWorkUnitSubscribe(name,success_callback,msg_callback);
 	service.add_work(unit);
 }
 

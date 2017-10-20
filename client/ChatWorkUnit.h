@@ -49,15 +49,13 @@ struct ChatWorkUnitNewChat:ChatWorkUnit{
 
 // for subscribing to a chat
 struct ChatWorkUnitSubscribe:ChatWorkUnit{
-	ChatWorkUnitSubscribe(unsigned long long i,const std::string &n,std::function<void(bool,std::vector<Message>)> c,std::function<void(Message)> m)
+	ChatWorkUnitSubscribe(const std::string &n,std::function<void(bool,std::vector<Message>)> c,std::function<void(Message)> m)
 	:ChatWorkUnit(WorkUnitType::SUBSCRIBE)
-	,id(i)
 	,name(n)
 	,callback(c)
 	,msg_callback(m)
 	{}
 
-	const unsigned long long id;
 	const std::string name;
 	const std::function<void(bool,std::vector<Message>)> callback;
 	const std::function<void(Message)> msg_callback;
