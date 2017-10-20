@@ -9,6 +9,7 @@ ChatService::ChatService(const std::string &dbpath):
 	db(dbpath),
 	working(true),
 	work_unit_count(0),
+	last_heartbeat(0),
 	handle(std::ref(*this))
 {}
 
@@ -131,6 +132,9 @@ void ChatService::loop(){
 		// see if the server has anything to say
 		recv_server_cmd();
 
+		// maybe send a heartbeat
+		heartbeat();
+
 		std::this_thread::sleep_for(std::chrono::milliseconds(60));
 	}
 }
@@ -161,6 +165,20 @@ void ChatService::recv_server_cmd(){
 	default:
 		// illegal
 		log_error(std::string("received an illegal command from the server: ")+std::to_string(static_cast<uint8_t>(type)));
+	}
+}
+
+// maybe send a heatbeat to see if the server is still there
+void ChatService::heartbeat(){
+	time_t current=time(NULL);
+
+	// someone is messing with system clock
+	if(last_heartbeat>current)
+		last_heartbeat=0;
+
+	if(current-last_heartbeat>HEARTBEAT_FREQUENCY){
+		last_heartbeat=current;
+		clientcmd_heartbeat();
 	}
 }
 
@@ -317,6 +335,13 @@ void ChatService::clientcmd_message(const Message &msg){
 	if(msg.raw_size>0){
 		send(msg.raw,msg.raw_size);
 	}
+}
+
+// send a heartbeat
+// implements ClientCommand::HEARTBEAT
+void ChatService::clientcmd_heartbeat(){
+	ClientCommand type=ClientCommand::HEARTBEAT;
+	send(&type,sizeof(type));
 }
 
 // recv a list of chats from server

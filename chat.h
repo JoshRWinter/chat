@@ -8,6 +8,8 @@
 
 #define CHAT_PORT 28859
 
+#define HEARTBEAT_FREQUENCY 15
+
 #define MESSAGE_LEN_INT 510 // these two must
 #define MESSAGE_LEN_STR "510" // be kept in sync
 
@@ -26,7 +28,8 @@ enum class ClientCommand:std::uint8_t{
 	LIST_CHATS, // client wants the list of chats
 	NEW_CHAT, // client wants to create a new chat
 	SUBSCRIBE, // client wants to subscribe to a chat
-	MESSAGE // client is sending a message
+	MESSAGE, // client is sending a message
+	HEARTBEAT // client is sending heartbeat to server
 };
 
 enum class MessageType:std::uint8_t{

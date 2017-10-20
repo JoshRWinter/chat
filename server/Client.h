@@ -17,8 +17,6 @@ class Server;
 #include "Server.h"
 #include "../chat.h"
 
-#define HEARTBEAT_FREQUENCY 15
-
 struct NetworkException:std::exception{
 	virtual const char *what()const noexcept{
 		return "network error";

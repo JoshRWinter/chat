@@ -38,6 +38,7 @@ public:
 private:
 	void loop();
 	void recv_server_cmd();
+	void heartbeat();
 	void reconnect();
 	const ChatWorkUnit *get_work();
 	void process_connect(const ChatWorkUnitConnect &unit);
@@ -51,6 +52,7 @@ private:
 	void clientcmd_new_chat(const std::string&,const std::string&);
 	void clientcmd_subscribe(const std::string&,unsigned long long);
 	void clientcmd_message(const Message&);
+	void clientcmd_heartbeat();
 	// net commands implementing ServerCommand::*
 	void servercmd_list_chats();
 	void servercmd_new_chat();
@@ -79,8 +81,8 @@ private:
 	std::atomic<int> work_unit_count; // atomically accessible version of units.size()
 	std::queue<const ChatWorkUnit*> units;
 	std::mutex mutex; // guards access to <units>
+	time_t last_heartbeat;
 	std::thread handle;
-	std::function<void(Message)> msg_callback;
 };
 
 #endif // CHATSERVICE_H

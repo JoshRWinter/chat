@@ -151,6 +151,9 @@ void Client::recv_command(){
 	case ClientCommand::NEW_CHAT:
 		clientcmd_newchat();
 		break;
+	case ClientCommand::HEARTBEAT:
+		// ignore
+		break;
 	default:
 		// illegal
 		kick(std::string("illegal command received from client: ")+std::to_string(static_cast<std::uint8_t>(type)));
