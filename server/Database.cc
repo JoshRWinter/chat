@@ -255,6 +255,11 @@ bool Database::valid_table_name(const std::string &name){
 	if(name.length()==0)
 		return false;
 
+	// no dollars pls
+	for(char s:name)
+		if(s=='$')
+			return false;
+
 	// make sure no chat already named <name>
 	const char *query=
 	"select * from chats where name = ?";
