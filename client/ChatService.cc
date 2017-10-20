@@ -5,7 +5,8 @@
 #include "ChatService.h"
 #include "log.h"
 
-ChatService::ChatService():
+ChatService::ChatService(const std::string &dbpath):
+	db(dbpath),
 	working(true),
 	work_unit_count(0),
 	handle(std::ref(*this))
@@ -41,6 +42,11 @@ void ChatService::operator()(){
 	}catch(const ShutdownException &e){
 		if(work_unit_count.load()>0)
 			log_error(std::string("shutting down with ")+std::to_string(work_unit_count.load())+" commands left in the queue!");
+	}
+	catch(const DatabaseException &e){
+		log_error(e.what());
+		// recurse
+		this->operator()();
 	}
 }
 
@@ -226,9 +232,13 @@ void ChatService::process_newchat(const ChatWorkUnitNewChat &unit){
 
 // subscribe to a chat
 void ChatService::process_subscribe(const ChatWorkUnitSubscribe &unit){
+	// enter the chat into the database
+	db.newchat(unit.name);
+
 	callback.subscribe=unit.callback;
 	callback.message=unit.msg_callback;
-	clientcmd_subscribe(unit.id,unit.name,0);
+	clientcmd_subscribe(unit.id,unit.name,db.get_latest_msg(unit.name));
+	chatname=unit.name; // store chatname for later
 }
 
 // send a message
@@ -298,7 +308,7 @@ void ChatService::clientcmd_message(const Message &msg){
 void ChatService::servercmd_list_chats(){
 	// get the server's name
 	servername=get_string();
-	log(std::string("servername is ")+servername);
+	db.set_servername(servername);
 
 	// recv the number of chats
 	std::uint64_t count;
@@ -372,7 +382,13 @@ void ChatService::servercmd_subscribe(){
 		msgs.push_back({id,type,msg,sender,raw,raw_size});
 	}
 
-	callback.subscribe(true,msgs);
+	// give the client messages that were already in this chat
+	callback.subscribe(true,db.get_msgs(chatname));
+
+	for(const Message &msg:msgs){
+		db.newmsg(msg,chatname);
+		callback.message(msg);
+	}
 }
 
 // recv a message from the server
@@ -401,5 +417,9 @@ void ChatService::servercmd_message(){
 
 	Message message(id,type,msg,sender,raw,raw_size);
 
+	// store it in the db
+	db.newmsg(message,chatname);
+
+	// tell the user
 	callback.message(message);
 }

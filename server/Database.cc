@@ -122,7 +122,7 @@ std::vector<Chat> Database::get_chats(){
 
 // register a new chat to the database
 void Database::new_chat(const Chat &chat){
-	sqlite3_exec(conn,"BEGIN TRANSACTION",NULL,NULL,NULL);
+	sqlite3_exec(conn,"BEGIN",NULL,NULL,NULL);
 	// now create a table for the messages
 	const std::string newtable=std::string("")+
 	"create table "+Database::escape_table_name(chat.name)+" (\n"

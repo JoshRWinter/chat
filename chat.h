@@ -59,12 +59,13 @@ struct Message{
 	Message(Message &&other){ // move constructor
 		id=other.id;
 		type=other.type;
-		msg=other.msg;
-		sender=other.sender;
+		msg=std::move(other.msg);
+		sender=std::move(other.sender);
 		raw_size=other.raw_size;
 		raw=other.raw;
 
 		other.raw=NULL;
+		other.raw_size=0;
 	}
 
 	~Message(){

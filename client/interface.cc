@@ -42,7 +42,7 @@ int main(){
 			}
 
 			auto subscribe_callback=[](bool success,std::vector<Message> list){
-				print(std::string("here are the (")+std::to_string(list.size())+") since last connect:");
+				print(std::string("there are ")+std::to_string(list.size())+" already messages in this chat");
 				for(const Message &msg:list){
 					print(std::to_string(msg.id)+" "+msg.msg);
 				}

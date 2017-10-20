@@ -1,9 +1,9 @@
 CPPFLAGS := -c -g -std=c++11 -fpic -Wall -pedantic
-LFLAGS := -lsqlite3 -pthread -shared
+LFLAGS := -lsqlite3 -pthread -shared -lsqlite3
 COMPILER := g++
 REMOVE := rm
 
-OBJECTS := network.o ChatClient.o ChatService.o log.o
+OBJECTS := network.o ChatClient.o ChatService.o Database.o log.o
 
 interface: interface.cc libchat.so ChatClient.h
 	g++ -o $@ -std=c++17 -g $< -L. -lchat

@@ -1,6 +1,6 @@
 #include "ChatClient.h"
 
-ChatClient::ChatClient(const std::string &dbpath){
+ChatClient::ChatClient(const std::string &dbpath):service(dbpath){
 }
 
 ChatClient::~ChatClient(){
@@ -12,6 +12,7 @@ void ChatClient::connect(const std::string &target,const std::string &myname,std
 	service.add_work(unit);
 }
 
+// add a new chat to the server
 void ChatClient::newchat(const std::string &name,const std::string &desc,std::function<void(bool)> callback){
 	auto unit=new ChatWorkUnitNewChat(name,desc,callback);
 	service.add_work(unit);

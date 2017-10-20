@@ -6,8 +6,9 @@
 #include <mutex>
 #include <queue>
 
-#include "ChatWorkUnit.h"
 #include "network.h"
+#include "ChatWorkUnit.h"
+#include "Database.h"
 
 class NetworkException:public std::exception{
 public:
@@ -25,7 +26,7 @@ public:
 
 class ChatService{
 public:
-	ChatService();
+	explicit ChatService(const std::string&);
 	~ChatService();
 	void add_work(const ChatWorkUnit*);
 	void operator()();
@@ -68,16 +69,17 @@ private:
 		std::function<void(Message)> message;
 	}callback;
 
+	Database db;
 	net::tcp tcp;
 	std::string servername; // name of current server that this is connected to
 	std::string name; // user's name
+	std::string chatname; // subscribed chat
 	std::atomic<bool> working; // service thread currently running
 	std::atomic<int> work_unit_count; // atomically accessible version of units.size()
 	std::queue<const ChatWorkUnit*> units;
 	std::mutex mutex; // guards access to <units>
 	std::thread handle;
 	std::function<void(Message)> msg_callback;
-
 };
 
 #endif // CHATSERVICE_H
