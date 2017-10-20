@@ -129,11 +129,14 @@ void ChatService::loop(){
 			delete unit;
 		}
 
-		// see if the server has anything to say
-		recv_server_cmd();
+		// if connected
+		if(tcp){
+			// see if the server has anything to say
+			recv_server_cmd();
 
-		// maybe send a heartbeat
-		heartbeat();
+			// maybe send a heartbeat
+			heartbeat();
+		}
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(60));
 	}
@@ -250,6 +253,8 @@ void ChatService::process_connect(const ChatWorkUnitConnect &unit){
 			// request chat list
 			clientcmd_list_chats();
 		}
+		else
+			tcp.close();
 	}
 }
 
