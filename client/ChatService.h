@@ -28,7 +28,7 @@ class ChatService{
 public:
 	explicit ChatService(const std::string&);
 	~ChatService();
-	void add_work(const ChatWorkUnit*);
+	void add_work(ChatWorkUnit*);
 	void operator()();
 	void send(const void*,int);
 	void recv(void*,int);
@@ -39,11 +39,11 @@ private:
 	void loop();
 	void recv_server_cmd();
 	void reconnect();
-	const ChatWorkUnit *get_work();
+	ChatWorkUnit *get_work();
 	void process_connect(const ChatWorkUnitConnect &unit);
 	void process_newchat(const ChatWorkUnitNewChat &unit);
 	void process_subscribe(const ChatWorkUnitSubscribe &unit);
-	void process_send_text(const ChatWorkUnitMessageText &unit);
+	void process_send_message(ChatWorkUnitMessage&unit);
 
 	// net commands implementing ClientCommand::*
 	void clientcmd_introduce();
@@ -76,7 +76,7 @@ private:
 	std::string chatname; // subscribed chat
 	std::atomic<bool> working; // service thread currently running
 	std::atomic<int> work_unit_count; // atomically accessible version of units.size()
-	std::queue<const ChatWorkUnit*> units;
+	std::queue<ChatWorkUnit*> units;
 	std::mutex mutex; // guards access to <units>
 	std::thread handle;
 	std::function<void(Message)> msg_callback;

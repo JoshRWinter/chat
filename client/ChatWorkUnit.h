@@ -64,13 +64,26 @@ struct ChatWorkUnitSubscribe:ChatWorkUnit{
 };
 
 // for sending a message
-struct ChatWorkUnitMessageText:ChatWorkUnit{
-	ChatWorkUnitMessageText(const std::string &t)
+struct ChatWorkUnitMessage:ChatWorkUnit{
+	ChatWorkUnitMessage(MessageType t,const std::string &m,const unsigned char *r,unsigned long long rs)
 	:ChatWorkUnit(WorkUnitType::MESSAGE)
-	,text(t)
-	{}
+	,type(t)
+	,text(m)
+	,raw_size(rs)
+	{
+		if(r!=NULL){
+			raw=new unsigned char[raw_size];
+			memcpy(raw,r,raw_size);
+		}
+		else
+			raw=NULL;
+	}
+	~ChatWorkUnitMessage(){delete[] raw;}
 
+	const MessageType type;
 	const std::string text;
+	unsigned char *raw;
+	const unsigned long long raw_size;
 };
 
 #endif // CHATWORKUNIT_H

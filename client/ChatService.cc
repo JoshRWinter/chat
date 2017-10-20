@@ -26,7 +26,7 @@ ChatService::~ChatService(){
 
 // accessed from multiple threads
 // takes ownership of <unit>
-void ChatService::add_work(const ChatWorkUnit *unit){
+void ChatService::add_work(ChatWorkUnit *unit){
 	std::lock_guard<std::mutex> lock(mutex);
 
 	units.push(unit);
@@ -105,7 +105,7 @@ void ChatService::loop(){
 	while(working.load()){
 		// process work units
 		if(work_unit_count.load()>0){
-			const ChatWorkUnit *unit=get_work();
+			ChatWorkUnit *unit=get_work();
 
 			try{
 				switch(unit->type){
@@ -119,7 +119,7 @@ void ChatService::loop(){
 					process_subscribe(*dynamic_cast<const ChatWorkUnitSubscribe*>(unit));
 					break;
 				case WorkUnitType::MESSAGE:
-					process_send_text(*dynamic_cast<const ChatWorkUnitMessageText*>(unit));
+					process_send_message(*dynamic_cast<ChatWorkUnitMessage*>(unit));
 					break;
 				}
 			}catch(const std::exception &e){
@@ -189,10 +189,10 @@ void ChatService::reconnect(){
 }
 
 // get the first command in the list, then erase it from the list, the return it
-const ChatWorkUnit *ChatService::get_work(){
+ChatWorkUnit *ChatService::get_work(){
 	std::lock_guard<std::mutex> lock(mutex);
 
-	const ChatWorkUnit *unit=units.front();
+	ChatWorkUnit *unit=units.front();
 	units.pop();
 	--work_unit_count;
 
@@ -242,8 +242,9 @@ void ChatService::process_subscribe(const ChatWorkUnitSubscribe &unit){
 }
 
 // send a message
-void ChatService::process_send_text(const ChatWorkUnitMessageText &unit){
-	Message msg(0,MessageType::TEXT,unit.text,name,NULL,0);
+void ChatService::process_send_message(ChatWorkUnitMessage&unit){
+	Message msg(0,unit.type,unit.text,name,unit.raw,unit.raw_size);
+	unit.raw=NULL;
 	clientcmd_message(msg);
 }
 

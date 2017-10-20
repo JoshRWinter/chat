@@ -168,8 +168,8 @@ void Database::new_chat(const Chat &chat){
 // insert a new message into database
 unsigned long long Database::new_msg(const Chat &chat,const Message &msg){
 	std::string insert=std::string("")+
-	"insert into "+Database::escape_table_name(chat.name)+" (type,message,name) values\n"
-	"(?,?,?);";
+	"insert into "+Database::escape_table_name(chat.name)+" (type,message,name,raw) values\n"
+	"(?,?,?,?);";
 
 	sqlite3_stmt *statement;
 	sqlite3_prepare_v2(conn,insert.c_str(),-1,&statement,NULL);
@@ -177,6 +177,7 @@ unsigned long long Database::new_msg(const Chat &chat,const Message &msg){
 	sqlite3_bind_int(statement,1,static_cast<int>(msg.type));
 	sqlite3_bind_text(statement,2,msg.msg.c_str(),-1,SQLITE_TRANSIENT);
 	sqlite3_bind_text(statement,3,msg.sender.c_str(),-1,SQLITE_TRANSIENT);
+	sqlite3_bind_blob(statement,4,msg.raw,msg.raw_size,SQLITE_TRANSIENT);
 
 	if(sqlite3_step(statement)!=SQLITE_DONE){
 		sqlite3_finalize(statement);
@@ -220,13 +221,22 @@ std::vector<Message> Database::get_messages_since(unsigned long long since,const
 			throw DatabaseException(sqlite3_errmsg(conn));
 		}
 
+		// get the blob first
+		const int raw_size=sqlite3_column_bytes(statement,4);
+		const unsigned char *r=(unsigned char*)sqlite3_column_blob(statement,4);
+		unsigned char *raw=NULL;
+		if(r!=NULL){
+			raw=new unsigned char[raw_size];
+			memcpy(raw,r,raw_size);
+		}
+
 		messages.push_back({
 			(decltype(Message::id))sqlite3_column_int(statement,0),
 			static_cast<MessageType>(sqlite3_column_int(statement,1)),
 			(char*)sqlite3_column_text(statement,2),
 			(char*)sqlite3_column_text(statement,3),
-			NULL,
-			0
+			raw,
+			(decltype(Message::raw_size))raw_size
 		});
 	}
 

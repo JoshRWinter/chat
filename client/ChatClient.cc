@@ -26,6 +26,6 @@ void ChatClient::subscribe(unsigned long long id,const std::string &name,std::fu
 
 // send a text message
 void ChatClient::send(const std::string &text){
-	auto unit=new ChatWorkUnitMessageText(text);
+	auto unit=new ChatWorkUnitMessage(MessageType::TEXT,text,NULL,0);
 	service.add_work(unit);
 }
