@@ -15,6 +15,7 @@
 
 // command from the server
 enum class ServerCommand:std::uint8_t{
+	INTRODUCE, // introduction receipt
 	LIST_CHATS, // sending client list of chats
 	NEW_CHAT, // sending client receipt of new chat
 	SUBSCRIBE, // server is confirming successful subscription

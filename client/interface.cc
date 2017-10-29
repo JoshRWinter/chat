@@ -31,28 +31,30 @@ int main(){
 	running.store(true);
 	ChatClient client("chatdb");
 
-	client.connect("localhost","Josh Winter",[&client](bool success, std::vector<Chat> list){
+	client.connect("localhost","Josh Winter",[&client](bool success){
 		if(success){
-			if(list.size()==0){
-				print("no chats");
-				return;
-			}
-			for(const Chat &chat:list){
-				print(std::string("id: ")+std::to_string(chat.id)+" name: "+chat.name+" creator: "+chat.creator+" description: "+chat.description);
-			}
-
-			auto subscribe_callback=[](bool success,std::vector<Message> list){
-				print(std::string("there are ")+std::to_string(list.size())+" already messages in this chat");
-				for(const Message &msg:list){
-					print(std::to_string(msg.id)+" "+msg.msg);
+			client.list_chats([&client](std::vector<Chat> list){
+				if(list.size()==0){
+					print("no chats");
+					return;
 				}
-			};
+				for(const Chat &chat:list){
+					print(std::string("id: ")+std::to_string(chat.id)+" name: "+chat.name+" creator: "+chat.creator+" description: "+chat.description);
+				}
 
-			auto msg_callback=[](Message msg){
-				print(std::string("received msg ")+std::to_string(msg.id)+" "+msg.msg);
-			};
+				auto subscribe_callback=[](bool success,std::vector<Message> list){
+					print(std::string("there are ")+std::to_string(list.size())+" already messages in this chat");
+					for(const Message &msg:list){
+						print(std::to_string(msg.id)+" "+msg.msg);
+					}
+				};
 
-			client.subscribe(list[0].name,subscribe_callback,msg_callback);
+				auto msg_callback=[](Message msg){
+					print(std::string("received msg ")+std::to_string(msg.id)+" "+msg.msg);
+				};
+
+				client.subscribe(list[0].name,subscribe_callback,msg_callback);
+			});
 		}
 		else
 			print("couldn't connect");

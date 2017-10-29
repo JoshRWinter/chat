@@ -35,6 +35,7 @@ public:
 	void new_msg(const Chat&,Message&);
 	std::vector<Message> get_messages_since(unsigned long long,const std::string&);
 	bool valid_table_name(const std::string&);
+	std::string validate_name(const Client&);
 	static void sleep();
 
 private:

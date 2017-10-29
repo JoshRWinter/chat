@@ -8,6 +8,7 @@
 
 enum class WorkUnitType:std::uint8_t{
 	CONNECT, // connect to a server
+	LIST_CHATS, // refresh the chat list
 	NEW_CHAT, // have the server make a new chat
 	SUBSCRIBE, // subscribe to a chat
 	MESSAGE // send a message
@@ -21,7 +22,7 @@ struct ChatWorkUnit{
 
 // for connecting to the server
 struct ChatWorkUnitConnect:ChatWorkUnit{
-	ChatWorkUnitConnect(const std::string &t,const std::string &n,std::function<void(bool,std::vector<Chat>)> fn)
+	ChatWorkUnitConnect(const std::string &t,const std::string &n,std::function<void(bool)> fn)
 	:ChatWorkUnit(WorkUnitType::CONNECT)
 	,target(t)
 	,myname(n)
@@ -30,7 +31,16 @@ struct ChatWorkUnitConnect:ChatWorkUnit{
 
 	const std::string target;
 	const std::string myname;
-	const std::function<void(bool,std::vector<Chat>)> callback;
+	const std::function<void(bool)> callback;
+};
+
+struct ChatWorkUnitListChats:ChatWorkUnit{
+	ChatWorkUnitListChats(std::function<void(std::vector<Chat>)> fn)
+	:ChatWorkUnit(WorkUnitType::LIST_CHATS)
+	,callback(fn)
+	{}
+
+	const std::function<void(std::vector<Chat>)> callback;
 };
 
 // for creating a new chat

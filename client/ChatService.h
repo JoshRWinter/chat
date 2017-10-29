@@ -41,10 +41,11 @@ private:
 	void heartbeat();
 	void reconnect();
 	const ChatWorkUnit *get_work();
-	void process_connect(const ChatWorkUnitConnect &unit);
-	void process_newchat(const ChatWorkUnitNewChat &unit);
-	void process_subscribe(const ChatWorkUnitSubscribe &unit);
-	void process_send_message(const ChatWorkUnitMessage&unit);
+	void process_connect(const ChatWorkUnitConnect&);
+	void process_list_chats(const ChatWorkUnitListChats&);
+	void process_newchat(const ChatWorkUnitNewChat&);
+	void process_subscribe(const ChatWorkUnitSubscribe&);
+	void process_send_message(const ChatWorkUnitMessage&);
 
 	// net commands implementing ClientCommand::*
 	void clientcmd_introduce();
@@ -54,6 +55,7 @@ private:
 	void clientcmd_message(const Message&);
 	void clientcmd_heartbeat();
 	// net commands implementing ServerCommand::*
+	void servercmd_introduce();
 	void servercmd_list_chats();
 	void servercmd_new_chat();
 	void servercmd_subscribe();
@@ -62,7 +64,9 @@ private:
 	// registered callbacks
 	struct{
 		// called on successful connect
-		std::function<void(bool,std::vector<Chat>)> connect;
+		std::function<void(bool)> connect;
+		// called on chat list receipt
+		std::function<void(std::vector<Chat>)> chatlist;
 		// called on successful new chat
 		std::function<void(bool)> newchat;
 		// called on successful subscribe

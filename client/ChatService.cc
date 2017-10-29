@@ -113,6 +113,9 @@ void ChatService::loop(){
 			case WorkUnitType::CONNECT:
 				process_connect(*dynamic_cast<const ChatWorkUnitConnect*>(unit));
 				break;
+			case WorkUnitType::LIST_CHATS:
+				process_list_chats(*dynamic_cast<const ChatWorkUnitListChats*>(unit));
+				break;
 			case WorkUnitType::NEW_CHAT:
 				process_newchat(*dynamic_cast<const ChatWorkUnitNewChat*>(unit));
 				break;
@@ -150,6 +153,9 @@ void ChatService::recv_server_cmd(){
 	recv(&type,sizeof(type));
 
 	switch(type){
+	case ServerCommand::INTRODUCE:
+		servercmd_introduce();
+		break;
 	case ServerCommand::LIST_CHATS:
 		servercmd_list_chats();
 		break;
@@ -249,17 +255,22 @@ void ChatService::process_connect(const ChatWorkUnitConnect &unit){
 			// introduce myself
 			name=unit.myname;
 			clientcmd_introduce();
-
-			// request chat list
-			clientcmd_list_chats();
 		}
 		else{
-			unit.callback(false,{});
+			unit.callback(false);
 			tcp.close();
 		}
 	}
-	else
-		unit.callback(false,{});
+	else{
+		unit.callback(false);
+		tcp.close();
+	}
+}
+
+// refresh the chat list for the user
+void ChatService::process_list_chats(const ChatWorkUnitListChats &unit){
+	callback.chatlist=unit.callback;
+	clientcmd_list_chats();
 }
 
 // ask the server to create new chat
@@ -353,6 +364,14 @@ void ChatService::clientcmd_heartbeat(){
 	send(&type,sizeof(type));
 }
 
+// receive the validated name back from the server
+// implements ServerCommand::INTRODUCE
+void ChatService::servercmd_introduce(){
+	name=get_string();
+
+	callback.connect(true);
+}
+
 // recv a list of chats from server
 // implements ServerCommand::LIST_CHATS
 void ChatService::servercmd_list_chats(){
@@ -377,7 +396,7 @@ void ChatService::servercmd_list_chats(){
 		list.push_back({id,name,creator,description});
 	}
 
-	callback.connect(true,list);
+	callback.chatlist(list);
 }
 
 // recv receipt of previously created new chat

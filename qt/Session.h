@@ -10,6 +10,7 @@ class Update:public QEvent{
 public:
 	enum class Type{
 		CONNECT,
+		LIST_CHATS,
 		NEW_CHAT,
 		SUBSCRIBE,
 		MESSAGE
@@ -32,9 +33,11 @@ public:
 
 private:
 	void open();
+	void list_chats();
 	void new_chat(const std::string&,const std::string&);
 	void subscribe(const std::string&);
 	void connected(const Update*);
+	void listed(const Update*);
 	void subscribed(const Update*);
 	void new_chat_receipt(const Update*);
 	void message(const Update*);

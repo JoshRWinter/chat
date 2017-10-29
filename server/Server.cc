@@ -98,6 +98,21 @@ bool Server::valid_table_name(const std::string &name){
 	return db.valid_table_name(name);
 }
 
+// validate a client's name
+std::string Server::validate_name(const Client &user){
+	std::lock_guard<std::mutex> lock(mutex);
+
+	for(auto &client:client_list){
+		if(client.get()==&user)
+			continue;
+
+		if(client->get_name()==user.get_name())
+			return std::string("clone of ")+user.get_name();
+	}
+
+	return user.get_name();
+}
+
 void Server::sleep(){
 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }

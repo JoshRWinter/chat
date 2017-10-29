@@ -68,6 +68,7 @@ private:
 	void clientcmd_subscribe();
 	void clientcmd_message();
 	// net commands implementing ServerCommand::*
+	void servercmd_introduce();
 	void servercmd_list_chats(const std::vector<Chat>&);
 	void servercmd_new_chat(bool);
 	void servercmd_subscribe(bool,unsigned long long);
@@ -81,8 +82,8 @@ private:
 	std::atomic<int> out_queue_len; // lock free length of out_queue
 	std::mutex out_queue_lock; // guards access to <out_queue>
 	time_t last_heartbeat;
-	std::thread thread;
 	std::string name; // client name
+	std::thread thread;
 	std::optional<Chat> subscribed; // current subscribed chat
 };
 

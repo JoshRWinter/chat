@@ -7,8 +7,14 @@ ChatClient::~ChatClient(){
 }
 
 // connect to server
-void ChatClient::connect(const std::string &target,const std::string &myname,std::function<void(bool,std::vector<Chat>)> callback){
+void ChatClient::connect(const std::string &target,const std::string &myname,std::function<void(bool)> callback){
 	auto unit=new ChatWorkUnitConnect(target,myname,callback);
+	service.add_work(unit);
+}
+
+// refresh the chat list
+void ChatClient::list_chats(std::function<void(std::vector<Chat>)> fn){
+	auto unit=new ChatWorkUnitListChats(fn);
 	service.add_work(unit);
 }
 

@@ -11,6 +11,7 @@ Client::Client(Server &p,int sockfd):
 	disconnected(false),
 	out_queue_len(0),
 	last_heartbeat(0),
+	name("anonymous"),
 	thread(std::ref(*this)) // start a separate event thread for this client (operator())
 {}
 
@@ -136,6 +137,9 @@ void Client::recv_command(){
 	recv(&type,sizeof(type));
 
 	switch(type){
+	case ClientCommand::INTRODUCE:
+		clientcmd_introduce();
+		break;
 	case ClientCommand::LIST_CHATS:
 		clientcmd_list_chats();
 		break;
@@ -144,9 +148,6 @@ void Client::recv_command(){
 		break;
 	case ClientCommand::SUBSCRIBE:
 		clientcmd_subscribe();
-		break;
-	case ClientCommand::INTRODUCE:
-		clientcmd_introduce();
 		break;
 	case ClientCommand::NEW_CHAT:
 		clientcmd_newchat();
@@ -217,6 +218,11 @@ void Client::send_string(const std::string &str){
 // implements ClientCommand::INTRODUCE
 void Client::clientcmd_introduce(){
 	name=get_string();
+
+	// validate name
+	name=parent.validate_name(*this);
+
+	servercmd_introduce();
 }
 
 // lists the chats
@@ -306,6 +312,15 @@ void Client::clientcmd_message(){
 
 	if(subscribed)
 		parent.new_msg(subscribed.value(),msg);
+}
+
+// send the client their (validated) name back
+// implements ServerCommand::INTRODUCE
+void Client::servercmd_introduce(){
+	ServerCommand type=ServerCommand::INTRODUCE;
+	send(&type, sizeof(type));
+
+	send_string(name);
 }
 
 // send the client a list of chats

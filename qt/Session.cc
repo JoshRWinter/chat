@@ -26,6 +26,9 @@ void Session::customEvent(QEvent *e){
 	case Update::Type::CONNECT:
 		connected(event);
 		break;
+	case Update::Type::LIST_CHATS:
+		listed(event);
+		break;
 	case Update::Type::NEW_CHAT:
 		new_chat_receipt(event);
 		break;
@@ -41,9 +44,8 @@ void Session::customEvent(QEvent *e){
 // connect to server
 void Session::open(){
 	Update *event = new Update(Update::Type::CONNECT);
-	auto callback=[this, event](bool success, std::vector<Chat> chat_list){
+	auto callback=[this, event](bool success){
 		event->success=success;
-		event->chat_list=chat_list;
 
 		QCoreApplication::postEvent(this, event);
 	};
@@ -51,10 +53,21 @@ void Session::open(){
 	client.connect(serveraddr, username, callback);
 }
 
+// refresh the chat list from the server
+void Session::list_chats(){
+	Update *event = new Update(Update::Type::LIST_CHATS);
+	auto callback=[this, event](std::vector<Chat> chat_list){
+		event->chat_list=chat_list;
+
+		QCoreApplication::postEvent(this, event);
+	};
+
+	client.list_chats(callback);
+}
+
 // allow the user to make a new chat
 void Session::new_chat(const std::string &name, const std::string &description){
 	auto event = new Update(Update::Type::NEW_CHAT);
-	log("trying to make new chat");
 
 	auto callback=[this, event](bool success){
 		event->success = success;
@@ -98,6 +111,11 @@ void Session::connected(const Update *event){
 		qApp->quit();
 	}
 
+	list_chats();
+}
+
+// event handler for chat list from server
+void Session::listed(const Update *event){
 	chooser.reset(new DialogSession(this, event->chat_list));
 	QObject::connect(chooser.get(), &QDialog::accepted, this, &Session::accept_session);
 	QObject::connect(chooser.get(), &QDialog::rejected, qApp, &QApplication::quit);
@@ -148,10 +166,9 @@ void Session::accept_session(){
 	if(newchat){
 		// user wants to make a new chat
 		new_chat(name, description);
-		log(std::string("new chat name ")+name+" desc: "+description);
+		list_chats();
 	}
 	else{
-		log(std::string("want to subscribe to ")+name);
 		subscribe(name);
 	}
 }
