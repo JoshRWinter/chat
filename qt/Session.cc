@@ -144,6 +144,8 @@ void Session::new_chat_receipt(const Update *event){
 	box.setWindowTitle("Info");
 	box.setText(msg);
 	box.exec();
+
+	list_chats();
 }
 
 // event handler for new message
@@ -166,7 +168,6 @@ void Session::accept_session(){
 	if(newchat){
 		// user wants to make a new chat
 		new_chat(name, description);
-		list_chats();
 	}
 	else{
 		subscribe(name);
