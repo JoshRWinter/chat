@@ -253,9 +253,13 @@ void ChatService::process_connect(const ChatWorkUnitConnect &unit){
 			// request chat list
 			clientcmd_list_chats();
 		}
-		else
+		else{
+			unit.callback(false,{});
 			tcp.close();
+		}
 	}
+	else
+		unit.callback(false,{});
 }
 
 // ask the server to create new chat
