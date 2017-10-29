@@ -32,9 +32,11 @@ public:
 
 private:
 	void open();
+	void new_chat(const std::string&,const std::string&);
 	void subscribe(const std::string&);
 	void connected(const Update*);
 	void subscribed(const Update*);
+	void new_chat_receipt(const Update*);
 	void message(const Update*);
 	void accept_name();
 	void accept_session();

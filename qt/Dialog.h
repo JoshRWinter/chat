@@ -1,5 +1,6 @@
 #include <QDialog>
 #include <QLineEdit>
+#include <QTextEdit>
 #include <QListWidget>
 
 #include <tuple>
@@ -16,12 +17,28 @@ private:
 	QLineEdit *field_name, *field_addr;
 };
 
+class DialogNewSession:public QDialog{
+public:
+	DialogNewSession(QWidget*);
+	std::tuple<std::string, std::string> get()const;
+
+private:
+	QLineEdit *name;
+	QTextEdit *desc;
+};
+
 class DialogSession:public QDialog{
 public:
 	DialogSession(QWidget*, const std::vector<Chat>&);
-	std::string get()const;
+	std::tuple<bool, std::string, std::string> get()const;
 
 private:
+	void add_session();
+	void accept_session();
+
+	bool newchat;
+	DialogNewSession *add;
+	std::string name,desc;
 	QListWidget *list;
 	const std::vector<Chat> chat_list;
 };

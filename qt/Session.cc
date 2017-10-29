@@ -20,11 +20,14 @@ Session::Session():client("chatdb"){
 
 // receive custom events
 void Session::customEvent(QEvent *e){
-	Update *event = static_cast<Update*>(e);
+	Update *event = dynamic_cast<Update*>(e);
 
 	switch(event->eventtype){
 	case Update::Type::CONNECT:
 		connected(event);
+		break;
+	case Update::Type::NEW_CHAT:
+		new_chat_receipt(event);
 		break;
 	case Update::Type::SUBSCRIBE:
 		subscribed(event);
@@ -46,6 +49,20 @@ void Session::open(){
 	};
 
 	client.connect(serveraddr, username, callback);
+}
+
+// allow the user to make a new chat
+void Session::new_chat(const std::string &name, const std::string &description){
+	auto event = new Update(Update::Type::NEW_CHAT);
+	log("trying to make new chat");
+
+	auto callback=[this, event](bool success){
+		event->success = success;
+
+		QCoreApplication::postEvent(this, event);
+	};
+
+	client.newchat(name, description, callback);
 }
 
 // subscribe a user to a chat
@@ -99,6 +116,18 @@ void Session::subscribed(const Update *event){
 	}
 }
 
+// event handler for new chat receipt
+void Session::new_chat_receipt(const Update *event){
+	const char *msg = event->success?
+	"New chat session successfully created":
+	"Could not create new chat session";
+
+	QMessageBox box(this);
+	box.setWindowTitle("Info");
+	box.setText(msg);
+	box.exec();
+}
+
 // event handler for new message
 void Session::message(const Update *event){
 	log("message received");
@@ -114,7 +143,15 @@ void Session::accept_name(){
 
 // when the user returns from DialogSession
 void Session::accept_session(){
-	const std::string chat=chooser->get();
+	const auto [newchat, name, description] = chooser->get();
 
-	subscribe(chat);
+	if(newchat){
+		// user wants to make a new chat
+		new_chat(name, description);
+		log(std::string("new chat name ")+name+" desc: "+description);
+	}
+	else{
+		log(std::string("want to subscribe to ")+name);
+		subscribe(name);
+	}
 }
