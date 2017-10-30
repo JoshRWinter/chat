@@ -1,6 +1,8 @@
 #include <QApplication>
 #include <QEvent>
 #include <QMessageBox>
+#include <QVBoxLayout>
+#include <QPushButton>
 
 #include <vector>
 
@@ -11,10 +13,26 @@ Session::Session():client("chatdb"){
 	resize(400,600);
 	setWindowTitle("ChatQT");
 
+	display=new QTextEdit;
+	display->setReadOnly(true);
+	inputbox=new QTextEdit;
+	auto sender=new QPushButton("Send");
+	QObject::connect(sender, &QPushButton::clicked, [this](){
+		client.send(inputbox->toPlainText().toStdString());
+		inputbox->setText("");
+	});
+
+	auto vlayout=new QVBoxLayout;
+	setLayout(vlayout);
+	vlayout->addWidget(display);
+	vlayout->addWidget(inputbox);
+	vlayout->addWidget(sender);
+
 	// get the users name and server address
 	dname.reset(new DialogName(this));
 	QObject::connect(dname.get(), &QDialog::accepted, this, &Session::accept_name);
 	QObject::connect(dname.get(), &QDialog::rejected, qApp, &QApplication::quit);
+	dname->setModal(true);
 	dname->show();
 }
 
@@ -119,6 +137,7 @@ void Session::listed(const Update *event){
 	chooser.reset(new DialogSession(this, event->chat_list));
 	QObject::connect(chooser.get(), &QDialog::accepted, this, &Session::accept_session);
 	QObject::connect(chooser.get(), &QDialog::rejected, qApp, &QApplication::quit);
+	chooser->setModal(true);
 	chooser->show();
 }
 
@@ -132,6 +151,9 @@ void Session::subscribed(const Update *event){
 
 		qApp->quit();
 	}
+
+	for(const Message &msg:event->msg_list)
+		display_message(msg);
 }
 
 // event handler for new chat receipt
@@ -150,7 +172,11 @@ void Session::new_chat_receipt(const Update *event){
 
 // event handler for new message
 void Session::message(const Update *event){
-	log("message received");
+	display_message(event->msg);
+}
+
+void Session::display_message(const Message &msg){
+	display->setText(std::string(display->toPlainText().toStdString() +  msg.sender + ": " + msg.msg + "\n").c_str());
 }
 
 // after user returns from DialogName

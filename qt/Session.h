@@ -1,4 +1,5 @@
 #include <QWidget>
+#include <QTextEdit>
 
 #include <memory>
 
@@ -41,8 +42,12 @@ private:
 	void subscribed(const Update*);
 	void new_chat_receipt(const Update*);
 	void message(const Update*);
+	void display_message(const Message&);
 	void accept_name();
 	void accept_session();
+
+	QTextEdit *display;
+	QTextEdit *inputbox;
 
 	std::string username;
 	std::string serveraddr;

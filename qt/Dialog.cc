@@ -66,6 +66,7 @@ std::tuple<bool, std::string, std::string> DialogSession::get()const{
 void DialogSession::add_session(){
 	add = new DialogNewSession(this);
 	QObject::connect(add, &QDialog::accepted, this, &DialogSession::accept_session);
+	add->setModal(true);
 	add->show();
 }
 
