@@ -1,3 +1,6 @@
+#ifndef SESSION_H
+#define SESSION_H
+
 #include <QWidget>
 #include <QTextEdit>
 
@@ -55,3 +58,5 @@ private:
 	std::unique_ptr<DialogSession> chooser;
 	ChatClient client;
 };
+
+#endif // SESSION_H

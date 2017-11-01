@@ -1,3 +1,6 @@
+#ifndef DIALOG_H
+#define DIALOG_H
+
 #include <QDialog>
 #include <QLineEdit>
 #include <QTextEdit>
@@ -42,3 +45,5 @@ private:
 	QListWidget *list;
 	const std::vector<Chat> chat_list;
 };
+
+#endif // DIALOG_H
