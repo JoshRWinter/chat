@@ -123,7 +123,6 @@ void ChatService::loop(){
 				process_subscribe(*dynamic_cast<const ChatWorkUnitSubscribe*>(unit));
 				break;
 			case WorkUnitType::MESSAGE:
-			log("sending message");
 				process_send_message(*dynamic_cast<const ChatWorkUnitMessage*>(unit));
 				break;
 			}
