@@ -14,14 +14,15 @@ Session::Session():client("chatdb"){
 	resize(400,600);
 	setWindowTitle("ChatQT");
 
-	display=new MessageThread;
-	inputbox=new QTextEdit;
-	inputbox->setMaximumHeight(100);
-	auto sender=new QPushButton("Send");
-	QObject::connect(sender, &QPushButton::clicked, [this](){
+	auto action = [this](){
 		client.send(inputbox->toPlainText().toStdString());
 		inputbox->setText("");
-	});
+	};
+	display=new MessageThread;
+	inputbox=new TextBox(action);
+	inputbox->setMaximumHeight(100);
+	auto sender=new QPushButton("Send");
+	QObject::connect(sender, &QPushButton::clicked, action);
 
 	auto vlayout=new QVBoxLayout;
 	setLayout(vlayout);

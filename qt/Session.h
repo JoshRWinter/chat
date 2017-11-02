@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QTextEdit>
+#include <QKeyEvent>
 
 #include <memory>
 
@@ -29,6 +30,21 @@ public:
 	std::vector<Message> msg_list;
 	std::vector<Chat> chat_list;
 	Message msg;
+};
+
+class TextBox:public QTextEdit{
+public:
+	TextBox(std::function<void()> fn):enter(fn){}
+	void keyPressEvent(QKeyEvent *event){
+		if(event->key()==Qt::Key_Return){
+			enter();
+		}
+		else
+			QTextEdit::keyPressEvent(event);
+	}
+
+private:
+	std::function<void()> enter;
 };
 
 class Session:public QWidget{
