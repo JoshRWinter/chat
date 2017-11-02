@@ -36,6 +36,8 @@ Session::Session():client("chatdb"){
 	QObject::connect(dname.get(), &QDialog::rejected, qApp, &QApplication::quit);
 	dname->setModal(true);
 	dname->show();
+
+	inputbox->setFocus();
 }
 
 // receive custom events
