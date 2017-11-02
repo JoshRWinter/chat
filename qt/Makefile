@@ -4,7 +4,7 @@ REMOVE := rm
 COMPILER := g++
 EXECUTABLE := chatqt
 
-OBJECTS := main.o Log.cc Dialog.o Session.o
+OBJECTS := main.o Log.cc Dialog.o Session.o MessageThread.o
 .PHONY := clean all
 
 all: $(EXECUTABLE)

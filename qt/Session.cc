@@ -5,6 +5,7 @@
 #include <QPushButton>
 
 #include <vector>
+#include <iostream>
 
 #include "Session.h"
 #include "Log.h"
@@ -13,9 +14,9 @@ Session::Session():client("chatdb"){
 	resize(400,600);
 	setWindowTitle("ChatQT");
 
-	display=new QTextEdit;
-	display->setReadOnly(true);
+	display=new MessageThread;
 	inputbox=new QTextEdit;
+	inputbox->setMaximumHeight(100);
 	auto sender=new QPushButton("Send");
 	QObject::connect(sender, &QPushButton::clicked, [this](){
 		client.send(inputbox->toPlainText().toStdString());
@@ -176,15 +177,18 @@ void Session::message(const Update *event){
 }
 
 void Session::display_message(const Message &msg){
-	display->setText(std::string(display->toPlainText().toStdString() +  msg.sender + ": " + msg.msg + "\n").c_str());
+	display->add(msg);
 }
 
 // after user returns from DialogName
 void Session::accept_name(){
 	const auto [name, addr] = dname->get();
-	username = name; serveraddr = addr;
+	username=name;
+	serveraddr=addr;
 
 	open();
+	username=client.name();
+	display->name(username);
 }
 
 // when the user returns from DialogSession

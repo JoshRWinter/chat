@@ -8,6 +8,8 @@ ChatClient::~ChatClient(){
 
 // connect to server
 void ChatClient::connect(const std::string &target,const std::string &myname,std::function<void(bool)> callback){
+	clientname=myname;
+
 	auto unit=new ChatWorkUnitConnect(target,myname,callback);
 	service.add_work(unit);
 }
@@ -34,4 +36,8 @@ void ChatClient::subscribe(const std::string &name,std::function<void(bool,std::
 void ChatClient::send(const std::string &text){
 	auto unit=new ChatWorkUnitMessage(MessageType::TEXT,text,NULL,0);
 	service.add_work(unit);
+}
+
+std::string ChatClient::name()const{
+	return clientname;
 }

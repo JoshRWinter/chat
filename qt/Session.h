@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "Dialog.h"
+#include "MessageThread.h"
 #include "../client/ChatClient.h"
 
 // custom event for cross thread communication
@@ -49,7 +50,7 @@ private:
 	void accept_name();
 	void accept_session();
 
-	QTextEdit *display;
+	MessageThread *display;
 	QTextEdit *inputbox;
 
 	std::string username;
