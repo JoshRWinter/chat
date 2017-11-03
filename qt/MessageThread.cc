@@ -1,5 +1,4 @@
 #include <vector>
-#include <iostream>
 
 #include <QWidget>
 #include <QScrollBar>
@@ -9,12 +8,12 @@
 
 #include "MessageThread.h"
 
-MessageThread::MessageThread(){
+MessageThread::MessageThread(std::function<void(const QPixmap*, const std::string&)> fn){
 	setSizePolicy(QSizePolicy::Policy::Expanding,QSizePolicy::Policy::Expanding);
 	setWidgetResizable(true);
 	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 
-	area=new MessageArea(this);
+	area=new MessageArea(this, fn);
 	area->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Expanding);
 	setWidget(area);
 }
@@ -31,11 +30,11 @@ void MessageThread::name(const std::string &name){
 	area->name(name);
 }
 
-MessageArea::MessageArea(MessageThread *p):parent(p){}
+MessageArea::MessageArea(MessageThread *p, std::function<void(const QPixmap*, const std::string&)> fn):parent(p),img_clicked_fn(fn){}
 
 void MessageArea::add(const Message &m){
 	if(m.type==MessageType::IMAGE){
-		img_cache.push_back({m.raw,m.raw_size,m.id});
+		img_cache.push_back({m.msg,m.raw,m.raw_size,m.id});
 	}
 
 	msgs.push_back(m);
@@ -45,6 +44,16 @@ void MessageArea::add(const Message &m){
 
 void MessageArea::name(const std::string &n){
 	myname=n;
+}
+
+void MessageArea::mouseReleaseEvent(QMouseEvent *event){
+	const int x=event->x();
+	const int y=event->y();
+
+	for(const ImageCache &img:img_cache){
+		if(x>img.x&&x<img.x+50&&y>img.y&&y<img.y+50)
+			img_clicked_fn(&img.map, img.name);
+	}
 }
 
 void MessageArea::paintEvent(QPaintEvent*){
@@ -79,7 +88,7 @@ void MessageArea::paintEvent(QPaintEvent*){
 			y+=boxheight+senderboxheight+20;
 		}
 		else if(msg.type==MessageType::IMAGE){
-			const QPixmap *map=MessageArea::get_image(msg.id, img_cache);
+			ImageCache *img=MessageArea::get_image(msg.id, img_cache);
 			const std::string filename=MessageArea::reflow(painter.fontMetrics(), MessageArea::truncate(msg.msg), boxwidth-10);
 			const int filenameheight=painter.fontMetrics().height()*MessageArea::line_count(filename);
 			const int boxheight=70+filenameheight;
@@ -87,8 +96,12 @@ void MessageArea::paintEvent(QPaintEvent*){
 			painter.fillRect(x,y,boxwidth,boxheight,rectcolor);
 			painter.fillRect(x,y+boxheight,boxwidth,senderboxheight,sendercolor);
 
-			if(map){
-				painter.drawPixmap(QRect(x+(boxwidth/2)-25,y+10,50,50), *map, map->rect());
+			if(img){
+				const int xpos=x+(boxwidth/2)-25;
+				const int ypos=y+10;
+				painter.drawPixmap(QRect(xpos,ypos,50,50), img->map, img->map.rect());
+				img->x=xpos;
+				img->y=ypos;
 			}
 			else{
 				painter.drawText(x+10, y+10, "[ image error ]");
@@ -230,10 +243,10 @@ std::string MessageArea::truncate(const std::string &fname){
 	return fname.substr(position);
 }
 
-const QPixmap *MessageArea::get_image(unsigned long long id, const std::vector<ImageCache> &cache){
-	for(const ImageCache &item:cache)
+ImageCache *MessageArea::get_image(unsigned long long id, std::vector<ImageCache> &cache){
+	for(ImageCache &item:cache)
 		if(item.id==id&&item.valid)
-			return &item.map;
+			return &item;
 
 	return NULL;
 }

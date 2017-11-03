@@ -46,4 +46,13 @@ private:
 	const std::vector<Chat> chat_list;
 };
 
+class DialogImage:public QDialog{
+public:
+	DialogImage(const QPixmap*, const std::string&);
+
+private:
+	const QPixmap *const map;
+	const std::string fname;
+};
+
 #endif // DIALOG_H

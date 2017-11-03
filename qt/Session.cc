@@ -15,11 +15,17 @@ Session::Session():client("chatdb"){
 	resize(400,600);
 	setWindowTitle("ChatQT");
 
-	auto action = [this](){
+	auto action = [this]{
 		client.send(inputbox->toPlainText().toStdString());
 		inputbox->setText("");
 	};
-	display=new MessageThread;
+
+	auto img_click = [this](const QPixmap *map, const std::string &name){
+		DialogImage view(map,name);
+		view.exec();
+	};
+
+	display=new MessageThread(img_click);
 	inputbox=new TextBox(action);
 	inputbox->setMaximumHeight(100);
 	auto image=new QPushButton("Attach Image");

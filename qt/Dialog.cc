@@ -1,6 +1,9 @@
 #include <QBoxLayout>
 #include <QPushButton>
 #include <QFormLayout>
+#include <QLabel>
+#include <QScrollArea>
+#include <QFileDialog>
 
 #include "Dialog.h"
 
@@ -100,4 +103,34 @@ DialogNewSession::DialogNewSession(QWidget *parent):QDialog(parent){
 
 std::tuple<std::string, std::string> DialogNewSession::get()const{
 	return {name->text().toStdString(), desc->toPlainText().toStdString()};
+}
+
+DialogImage::DialogImage(const QPixmap *qpm, const std::string &name):map(qpm),fname(name){
+	auto save_slot=[this]{
+		QFileDialog chooser(this, "Save Image");
+		chooser.setAcceptMode(QFileDialog::AcceptSave);
+		chooser.selectFile(fname.c_str());
+		if(chooser.exec()){
+			map->save(chooser.selectedFiles().at(0));
+		}
+	};
+
+	setWindowTitle(fname.c_str());
+	const int mw=map->rect().width()+40,mh=map->rect().height()+70;
+	const int w=mw>800?800:mw,h=mh>600?600:mh;
+	resize(w,h);
+
+	auto label=new QLabel;
+	auto area=new QScrollArea();
+	area->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Expanding);
+	area->setWidgetResizable(true);
+	area->setWidget(label);
+	auto layout=new QVBoxLayout;
+	auto save=new QPushButton("Save Image");
+	QObject::connect(save, &QPushButton::clicked, save_slot);
+
+	setLayout(layout);
+	label->setPixmap(*map);
+	layout->addWidget(area);
+	layout->addWidget(save);
 }
