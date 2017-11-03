@@ -89,7 +89,7 @@ void MessageArea::paintEvent(QPaintEvent*){
 		}
 		else if(msg.type==MessageType::IMAGE){
 			ImageCache *img=MessageArea::get_image(msg.id, img_cache);
-			const std::string filename=MessageArea::reflow(painter.fontMetrics(), MessageArea::truncate(msg.msg), boxwidth-10);
+			const std::string filename=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-10);
 			const int filenameheight=painter.fontMetrics().height()*MessageArea::line_count(filename);
 			const int boxheight=70+filenameheight;
 
@@ -226,21 +226,6 @@ int MessageArea::line_count(const std::string &text){
 	}
 
 	return count;
-}
-
-// truncate the filepath to just the filename
-std::string MessageArea::truncate(const std::string &fname){
-	int position=0;
-	for(int i=fname.length()-1;i>=0;--i){
-		char current=fname.at(i);
-
-		if(current=='/'||current=='\\'){
-			position=i+1;
-			break;
-		}
-	}
-
-	return fname.substr(position);
 }
 
 ImageCache *MessageArea::get_image(unsigned long long id, std::vector<ImageCache> &cache){

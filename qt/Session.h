@@ -68,6 +68,7 @@ private:
 	void slotImage();
 	void slotFile();
 	static unsigned char *read_file(const std::string&,int&);
+	static std::string truncate(const std::string&);
 
 	MessageThread *display;
 	QTextEdit *inputbox;

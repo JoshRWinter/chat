@@ -232,7 +232,7 @@ void Session::slotImage(){
 			return;
 		}
 
-		client.send_image(list.at(0).toStdString(), buffer, size);
+		client.send_image(Session::truncate(list.at(0).toStdString()), buffer, size);
 	}
 }
 
@@ -256,4 +256,19 @@ unsigned char *Session::read_file(const std::string &name, int &size){
 	}
 
 	return buffer;
+}
+
+// truncate the filepath to just the filename
+std::string Session::truncate(const std::string &fname){
+	int position=0;
+	for(int i=fname.length()-1;i>=0;--i){
+		char current=fname.at(i);
+
+		if(current=='/'||current=='\\'){
+			position=i+1;
+			break;
+		}
+	}
+
+	return fname.substr(position);
 }
