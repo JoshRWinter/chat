@@ -48,14 +48,14 @@ void MessageArea::name(const std::string &n){
 }
 
 void MessageArea::paintEvent(QPaintEvent*){
-	const int X_ME=35;
+	const int X_ME=45;
 	const int X_THEM=5;
 
 	QPainter painter(this);
 	QSize qs=size();
 	const int widget_width=qs.rwidth();
 	const int widget_height=qs.rheight();
-	const int boxwidth=widget_width-40;
+	const int boxwidth=widget_width-50;
 
 	int y=5;
 	for(const Message &msg:msgs){
