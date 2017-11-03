@@ -39,11 +39,11 @@ private:
 	void add_session();
 	void accept_session();
 
-	bool newchat;
-	DialogNewSession *add;
 	std::string name,desc;
 	QListWidget *list;
 	const std::vector<Chat> chat_list;
+	bool newchat;
+	DialogNewSession *add;
 };
 
 class DialogImage:public QDialog{

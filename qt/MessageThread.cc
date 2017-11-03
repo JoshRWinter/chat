@@ -63,7 +63,6 @@ void MessageArea::paintEvent(QPaintEvent*){
 	QPainter painter(this);
 	QSize qs=size();
 	const int widget_width=qs.rwidth();
-	const int widget_height=qs.rheight();
 	const int boxwidth=widget_width-50;
 
 	int y=5;
@@ -131,7 +130,7 @@ std::string MessageArea::reflow(const QFontMetrics &metrics, const std::string &
 
 	std::vector<std::string> lines;
 	std::string formatted,backup;
-	int wordindex=0;
+	unsigned wordindex=0;
 	bool firstword=true;
 	while(wordindex<words.size()){
 		const char *const space=(wordindex==words.size()-1)?"":" ";
@@ -166,7 +165,7 @@ std::string MessageArea::reflow(const QFontMetrics &metrics, const std::string &
 std::vector<std::string> MessageArea::reflow_word(const QFontMetrics &metrics, const std::string &word, const int maxwidth){
 	std::vector<std::string> split;
 
-	int index=0;
+	unsigned index=0;
 	std::string line;
 	bool firstchar=true;
 
@@ -194,7 +193,7 @@ std::vector<std::string> MessageArea::reflow_word(const QFontMetrics &metrics, c
 std::vector<std::string> MessageArea::split(const QFontMetrics &metrics, const std::string &text, const int maxwidth){
 	std::vector<std::string> words;
 	int start=0;
-	for(int i=0;i<text.length();++i){
+	for(unsigned i=0;i<text.length();++i){
 		const char next=text.length()==i+1?' ':text.at(i+1);
 
 		if(next==' '||next=='\n'||next=='\r'){
