@@ -8,7 +8,6 @@
 #include <iostream>
 
 #include "Session.h"
-#include "Log.h"
 
 Session::Session():client("chatdb"){
 	resize(400,600);

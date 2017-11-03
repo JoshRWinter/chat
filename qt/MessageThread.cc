@@ -7,7 +7,6 @@
 #include <QVBoxLayout>
 
 #include "MessageThread.h"
-#include "Log.h"
 
 MessageThread::MessageThread(){
 	setSizePolicy(QSizePolicy::Policy::Expanding,QSizePolicy::Policy::Expanding);

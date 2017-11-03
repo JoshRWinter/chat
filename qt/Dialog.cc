@@ -3,7 +3,6 @@
 #include <QFormLayout>
 
 #include "Dialog.h"
-#include "Log.h"
 
 DialogName::DialogName(QWidget *parent):QDialog(parent){
 	setWindowTitle("Input your name and server address");
@@ -71,7 +70,6 @@ void DialogSession::add_session(){
 }
 
 void DialogSession::accept_session(){
-	log("accept session");
 	auto [n, d]=add->get();
 	newchat=true;
 	name = n; desc = d;
