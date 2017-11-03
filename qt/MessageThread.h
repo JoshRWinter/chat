@@ -35,6 +35,7 @@ private:
 	static std::vector<std::string> split(const QFontMetrics&, const std::string &text, int);
 	static int line_count(const std::string&);
 	static const QPixmap *get_image(unsigned long long, const std::vector<ImageCache>&);
+	static std::string truncate(const std::string&);
 
 	MessageThread *const parent;
 	std::vector<ImageCache> img_cache;

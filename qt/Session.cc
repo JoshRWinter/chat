@@ -216,7 +216,7 @@ void Session::accept_session(){
 void Session::slotImage(){
 	QFileDialog select(this, "Select An Image");
 	select.setFileMode(QFileDialog::ExistingFile);
-	select.setNameFilter("Images (*.jpg, *.jpeg, *.png)");
+	select.setNameFilter("Images (*.jpg *.jpeg *.png)");
 	if(select.exec()){
 		QStringList list=select.selectedFiles();
 		int size=0;
