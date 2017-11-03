@@ -65,6 +65,9 @@ private:
 	void display_message(const Message&);
 	void accept_name();
 	void accept_session();
+	void slotImage();
+	void slotFile();
+	static unsigned char *read_file(const std::string&,int&);
 
 	MessageThread *display;
 	QTextEdit *inputbox;

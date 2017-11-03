@@ -3,9 +3,11 @@
 #include <QMessageBox>
 #include <QVBoxLayout>
 #include <QPushButton>
+#include <QFileDialog>
 
 #include <vector>
 #include <iostream>
+#include <fstream>
 
 #include "Session.h"
 
@@ -20,14 +22,19 @@ Session::Session():client("chatdb"){
 	display=new MessageThread;
 	inputbox=new TextBox(action);
 	inputbox->setMaximumHeight(100);
-	auto sender=new QPushButton("Send");
-	QObject::connect(sender, &QPushButton::clicked, action);
+	auto image=new QPushButton("Attach Image");
+	auto file=new QPushButton("Attach File");
+	QObject::connect(image, &QPushButton::clicked, this, &Session::slotImage);
+	QObject::connect(file, &QPushButton::clicked, this, &Session::slotFile);
 
 	auto vlayout=new QVBoxLayout;
+	auto hlayout=new QHBoxLayout;
 	setLayout(vlayout);
 	vlayout->addWidget(display);
 	vlayout->addWidget(inputbox);
-	vlayout->addWidget(sender);
+	vlayout->addLayout(hlayout);
+	hlayout->addWidget(image);
+	hlayout->addWidget(file);
 
 	// get the users name and server address
 	dname.reset(new DialogName(this));
@@ -204,4 +211,43 @@ void Session::accept_session(){
 	else{
 		subscribe(name);
 	}
+}
+
+void Session::slotImage(){
+	QFileDialog select(this, "Select An Image");
+	select.setFileMode(QFileDialog::ExistingFile);
+	select.setNameFilter("Images (*.jpg, *.jpeg, *.png)");
+	if(select.exec()){
+		QStringList list=select.selectedFiles();
+		int size=0;
+		unsigned char *buffer=read_file(list.at(0).toStdString(), size);
+		if(buffer==NULL){
+			std::cout<<"couldn't read the file"<<std::endl;
+			return;
+		}
+
+		client.send_image(list.at(0).toStdString(), buffer, size);
+	}
+}
+
+void Session::slotFile(){
+}
+
+unsigned char *Session::read_file(const std::string &name, int &size){
+	std::ifstream in(name, std::ios::binary|std::ios::ate);
+	if(!in)
+		return NULL;
+
+	size=in.tellg();
+	in.seekg(0);
+	auto buffer=new unsigned char[size];
+
+	in.read((char*)buffer, size);
+
+	if(in.gcount()!=size){
+		delete[] buffer;
+		return NULL;
+	}
+
+	return buffer;
 }

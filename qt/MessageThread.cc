@@ -1,4 +1,5 @@
 #include <vector>
+#include <iostream>
 
 #include <QWidget>
 #include <QScrollBar>
@@ -33,6 +34,10 @@ void MessageThread::name(const std::string &name){
 MessageArea::MessageArea(MessageThread *p):parent(p){}
 
 void MessageArea::add(const Message &m){
+	if(m.type==MessageType::IMAGE){
+		img_cache.push_back({m.raw,m.raw_size,m.id});
+	}
+
 	msgs.push_back(m);
 	scroll_to_bottom=true;
 	update();
@@ -58,17 +63,47 @@ void MessageArea::paintEvent(QPaintEvent*){
 		const QColor rectcolor=me?QColor(120,120,190):QColor(200,200,200);
 		const QColor sendercolor=me?QColor(150,150,220):QColor(170,170,170);
 		const int x=me?X_ME:X_THEM;
-		const std::string formatted=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-10);
 		const std::string formatted_name=MessageArea::reflow(painter.fontMetrics(), msg.sender, boxwidth-10);
-		const int boxheight=painter.fontMetrics().height()*MessageArea::line_count(formatted)+20;
 		const int senderboxheight=painter.fontMetrics().height()*MessageArea::line_count(formatted_name)+10;
 
-		painter.fillRect(x,y,boxwidth,boxheight,rectcolor);
-		painter.fillRect(x,y+boxheight,boxwidth,senderboxheight,sendercolor);
-		painter.drawText(QRect(x+5,y+5,boxwidth,boxheight),Qt::AlignLeft,formatted.c_str());
-		painter.drawText(QRect(x+5,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
+		// draw the contents of the message
+		if(msg.type==MessageType::TEXT){
+			const std::string formatted=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-10);
+			const int boxheight=painter.fontMetrics().height()*MessageArea::line_count(formatted)+20;
 
-		y+=boxheight+senderboxheight+20;
+			painter.fillRect(x,y,boxwidth,boxheight,rectcolor);
+			painter.fillRect(x,y+boxheight,boxwidth,senderboxheight,sendercolor);
+			painter.drawText(QRect(x+5,y+5,boxwidth,boxheight),Qt::AlignLeft,formatted.c_str());
+			painter.drawText(QRect(x+5,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
+
+			y+=boxheight+senderboxheight+20;
+		}
+		else if(msg.type==MessageType::IMAGE){
+			const QPixmap *map=MessageArea::get_image(msg.id, img_cache);
+			const std::string filename=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-10);
+			const int filenameheight=painter.fontMetrics().height()*MessageArea::line_count(filename);
+			const int boxheight=70+filenameheight;
+
+			painter.fillRect(x,y,boxwidth,boxheight,rectcolor);
+			painter.fillRect(x,y+boxheight,boxwidth,senderboxheight,sendercolor);
+
+			if(map){
+				painter.drawPixmap(QRect(x+(boxwidth/2)-25,y+10,50,50), *map, map->rect());
+			}
+			else{
+				painter.drawText(x+10, y+10, "[ image error ]");
+			}
+			// draw the file name
+			painter.drawText(QRect(x+5, y+65, boxwidth, filenameheight), Qt::AlignLeft, filename.c_str());
+
+			painter.drawText(QRect(x+5,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
+
+			y+=boxheight+senderboxheight+20;
+		}
+		else if(msg.type==MessageType::FILE){
+		}
+
+
 		setMinimumHeight(y);
 	}
 
@@ -147,10 +182,10 @@ std::vector<std::string> MessageArea::split(const QFontMetrics &metrics, const s
 	std::vector<std::string> words;
 	int start=0;
 	for(int i=0;i<text.length();++i){
-		const char c=text.at(i);
+		const char next=text.length()==i+1?' ':text.at(i+1);
 
-		if(c==' '||c=='\n'||c=='\r'){
-			const std::string &sub=text.substr(start, i-start);
+		if(next==' '||next=='\n'||next=='\r'){
+			const std::string &sub=text.substr(start, (i+1)-start);
 
 			if(sub.length()!=0){
 				if(metrics.width(sub.c_str())>maxwidth-5){
@@ -159,13 +194,12 @@ std::vector<std::string> MessageArea::split(const QFontMetrics &metrics, const s
 						words.push_back(s);
 				}
 				else
-					words.push_back(text.substr(start, i-start));
+					words.push_back(sub);
 			}
 
-			start=i+1;
+			start=i+2;
 		}
 	}
-	words.push_back(text.substr(start));
 
 	return words;
 }
@@ -179,4 +213,12 @@ int MessageArea::line_count(const std::string &text){
 	}
 
 	return count;
+}
+
+const QPixmap *MessageArea::get_image(unsigned long long id, const std::vector<ImageCache> &cache){
+	for(const ImageCache &item:cache)
+		if(item.id==id&&item.valid)
+			return &item.map;
+
+	return NULL;
 }

@@ -38,6 +38,12 @@ void ChatClient::send(const std::string &text){
 	service.add_work(unit);
 }
 
+// send an image
+void ChatClient::send_image(const std::string &filename, unsigned char *buffer, int size){
+	auto unit=new ChatWorkUnitMessage(MessageType::IMAGE, filename, buffer, size);
+	service.add_work(unit);
+}
+
 std::string ChatClient::name()const{
 	return clientname;
 }

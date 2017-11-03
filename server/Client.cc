@@ -390,7 +390,7 @@ void Client::servercmd_subscribe(bool success,unsigned long long max){
 		send_string(msg.sender);
 
 		// send raw
-		std::uint64_t raw_size=0;
+		std::uint64_t raw_size=msg.raw_size;
 		send(&raw_size,sizeof(raw_size));
 
 		if(raw_size>0){

@@ -189,16 +189,17 @@ void Database::newmsg(const Message &msg,const std::string &chatname){
 
 	const std::string fqchatname=chatname+"$"+servername;
 	const std::string insert=std::string("")+
-	"insert into "+Database::escape_table_name(fqchatname)+" (type,message,name,raw) values\n"
-	"(?,?,?,?);";
+	"insert into "+Database::escape_table_name(fqchatname)+" (id,type,message,name,raw) values\n"
+	"(?,?,?,?,?);";
 
 	sqlite3_stmt *statement;
 	sqlite3_prepare_v2(conn,insert.c_str(),-1,&statement,NULL);
 
 	sqlite3_bind_int(statement,1,msg.id);
-	sqlite3_bind_text(statement,2,msg.msg.c_str(),-1,SQLITE_TRANSIENT);
-	sqlite3_bind_text(statement,3,msg.sender.c_str(),-1,SQLITE_TRANSIENT);
-	sqlite3_bind_blob(statement,4,msg.raw,msg.raw_size,SQLITE_TRANSIENT);
+	sqlite3_bind_int(statement,2,(int)msg.type);
+	sqlite3_bind_text(statement,3,msg.msg.c_str(),-1,SQLITE_TRANSIENT);
+	sqlite3_bind_text(statement,4,msg.sender.c_str(),-1,SQLITE_TRANSIENT);
+	sqlite3_bind_blob(statement,5,msg.raw,msg.raw_size,SQLITE_TRANSIENT);
 
 	if(sqlite3_step(statement)!=SQLITE_DONE){
 		sqlite3_finalize(statement);
