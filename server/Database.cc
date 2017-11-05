@@ -221,18 +221,25 @@ std::vector<Message> Database::get_messages_since(unsigned long long since,const
 			throw DatabaseException(sqlite3_errmsg(conn));
 		}
 
-		// get the blob first
-		const int raw_size=sqlite3_column_bytes(statement,4);
-		const unsigned char *r=(unsigned char*)sqlite3_column_blob(statement,4);
+		// blob only needs to be retrieved if the Message type is IMAGE
+		const MessageType type=(MessageType)sqlite3_column_int(statement, 1);
+		bool getblob=type==MessageType::IMAGE;
+
 		unsigned char *raw=NULL;
-		if(r!=NULL){
-			raw=new unsigned char[raw_size];
-			memcpy(raw,r,raw_size);
+		int raw_size=0;
+		if(getblob){
+			// get the blob first
+			raw_size=sqlite3_column_bytes(statement,4);
+			const unsigned char *r=(unsigned char*)sqlite3_column_blob(statement,4);
+			if(r!=NULL){
+				raw=new unsigned char[raw_size];
+				memcpy(raw,r,raw_size);
+			}
 		}
 
 		messages.push_back({
 			(decltype(Message::id))sqlite3_column_int(statement,0),
-			static_cast<MessageType>(sqlite3_column_int(statement,1)),
+			type,
 			(char*)sqlite3_column_text(statement,2),
 			(char*)sqlite3_column_text(statement,3),
 			raw,
