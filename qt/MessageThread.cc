@@ -104,7 +104,7 @@ void MessageArea::paintEvent(QPaintEvent*){
 			painter.fillRect(x,y+boxheight,boxwidth,senderboxheight,sendercolor);
 
 			if(img){
-				const int xpos=x+(boxwidth/2)-100;
+				const int xpos=x+(boxwidth/2)-50;
 				const int ypos=y+10;
 				painter.drawPixmap(QRect(xpos,ypos,100,100), img->map, img->map.rect());
 				img->x=xpos;
@@ -125,7 +125,7 @@ void MessageArea::paintEvent(QPaintEvent*){
 			const ButtonCache *btn=MessageArea::get_btn(msg.id, btn_cache);
 			const std::string filename=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-10);
 			const int filenameheight=painter.fontMetrics().height()*MessageArea::line_count(filename);
-			const int boxheight=60;
+			const int boxheight=45+btn->button->height();
 
 			painter.fillRect(x,y,boxwidth,boxheight,rectcolor);
 			painter.fillRect(x,y+boxheight,boxwidth,senderboxheight,sendercolor);
@@ -139,7 +139,7 @@ void MessageArea::paintEvent(QPaintEvent*){
 				painter.drawText(x+10, y+10, "[ file error ]");
 
 			// draw the file name
-			painter.drawText(QRect(x, y+40, boxwidth, filenameheight), Qt::AlignCenter, filename.c_str());
+			painter.drawText(QRect(x, btn->button->y()+btn->button->height()+7, boxwidth, filenameheight), Qt::AlignCenter, filename.c_str());
 
 			// draw the sender's name
 			painter.drawText(QRect(x+5,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
