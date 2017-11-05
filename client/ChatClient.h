@@ -17,6 +17,8 @@ public:
 	void subscribe(const std::string&,std::function<void(bool,std::vector<Message>)>,std::function<void(Message)>);
 	void send(const std::string&);
 	void send_image(const std::string&, unsigned char*, int);
+	void send_file(const std::string&, unsigned char*, int);
+	void get_file(unsigned long long, std::function<void(const unsigned char*,int)>);
 	std::string name()const;
 
 private:

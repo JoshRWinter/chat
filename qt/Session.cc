@@ -24,8 +24,11 @@ Session::Session():client("chatdb"){
 		DialogImage view(map,name);
 		view.exec();
 	};
+	auto file_click = [this](const unsigned long long id, const std::string &filename){
+		get_file(id, filename);
+	};
 
-	display=new MessageThread(img_click);
+	display=new MessageThread(img_click, file_click);
 	inputbox=new TextBox(action);
 	inputbox->setMaximumHeight(100);
 	auto image=new QPushButton("Attach Image");
@@ -71,6 +74,10 @@ void Session::customEvent(QEvent *e){
 		break;
 	case Update::Type::MESSAGE:
 		message(event);
+		break;
+	case Update::Type::GET_FILE:
+		file_received(event);
+		delete[] event->raw;
 		break;
 	}
 }
@@ -134,6 +141,24 @@ void Session::subscribe(const std::string &chat){
 	client.subscribe(chat, callback, msgcallback);
 }
 
+// request a file from the server
+void Session::get_file(unsigned long long id, const std::string &filename){
+	Update *event = new Update(Update::Type::GET_FILE);
+
+	auto callback=[this, event, filename](const unsigned char *data, int size){
+		unsigned char *raw=new unsigned char[size];
+		memcpy(raw, data, size);
+
+		event->raw=raw;
+		event->raw_size=size;
+		event->filename=filename;
+
+		QCoreApplication::postEvent(this, event);
+	};
+
+	client.get_file(id, callback);
+}
+
 // event handler for successful connection to the server
 void Session::connected(const Update *event){
 	if(!event->success){
@@ -191,6 +216,22 @@ void Session::message(const Update *event){
 	display_message(event->msg);
 }
 
+// event handler for file received
+void Session::file_received(const Update *event){
+	QFileDialog save(this, (std::string("Save ")+"\""+event->filename+"\"").c_str());
+	save.setAcceptMode(QFileDialog::AcceptSave);
+	save.selectFile(event->filename.c_str());
+	if(save.exec()){
+		std::string fname=save.selectedFiles().at(0).toStdString();
+		if(!Session::write_file(fname, event->raw, event->raw_size)){
+			QMessageBox box(this);
+			box.setWindowTitle("Error");
+			box.setText((std::string("Could not write to ")+fname+".").c_str());
+			box.exec();
+		}
+	}
+}
+
 void Session::display_message(const Message &msg){
 	display->add(msg);
 }
@@ -228,7 +269,10 @@ void Session::slotImage(){
 		int size=0;
 		unsigned char *buffer=read_file(list.at(0).toStdString(), size);
 		if(buffer==NULL){
-			std::cout<<"couldn't read the file"<<std::endl;
+			QMessageBox box(this);
+			box.setWindowTitle("Error");
+			box.setText((std::string("Couldn't read from ")+list.at(0).toStdString()).c_str());
+			box.exec();
 			return;
 		}
 
@@ -237,6 +281,22 @@ void Session::slotImage(){
 }
 
 void Session::slotFile(){
+	QFileDialog select(this, "Select a File");
+	select.setFileMode(QFileDialog::ExistingFile);
+	if(select.exec()){
+		const std::string filename=select.selectedFiles().at(0).toStdString();
+		int size=0;
+		unsigned char *buffer=read_file(filename, size);
+		if(buffer==NULL){
+			QMessageBox box(this);
+			box.setWindowTitle("Error");
+			box.setText((std::string("Couldn't read from ")+filename).c_str());
+			box.exec();
+			return;
+		}
+
+		client.send_file(Session::truncate(filename), buffer, size);
+	}
 }
 
 unsigned char *Session::read_file(const std::string &name, int &size){
@@ -256,6 +316,16 @@ unsigned char *Session::read_file(const std::string &name, int &size){
 	}
 
 	return buffer;
+}
+
+bool Session::write_file(const std::string &name, unsigned char *raw, int size){
+	std::ofstream out(name);
+	if(!out)
+		return false;
+
+	out.write((char*)raw,size);
+
+	return true;
 }
 
 // truncate the filepath to just the filename

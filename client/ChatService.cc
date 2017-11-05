@@ -1,4 +1,5 @@
 #include <chrono>
+#include <climits>
 
 #include <time.h>
 
@@ -125,6 +126,9 @@ void ChatService::loop(){
 			case WorkUnitType::MESSAGE:
 				process_send_message(*dynamic_cast<const ChatWorkUnitMessage*>(unit));
 				break;
+			case WorkUnitType::GET_FILE:
+				process_get_file(*dynamic_cast<const ChatWorkUnitGetFile*>(unit));
+				break;
 			}
 
 			// unit was processed successfully
@@ -166,6 +170,9 @@ void ChatService::recv_server_cmd(){
 		break;
 	case ServerCommand::MESSAGE:
 		servercmd_message();
+		break;
+	case ServerCommand::SEND_FILE:
+		servercmd_send_file();
 		break;
 	case ServerCommand::HEARTBEAT:
 		// ignore
@@ -290,7 +297,7 @@ void ChatService::process_subscribe(const ChatWorkUnitSubscribe &unit){
 }
 
 // send a message
-void ChatService::process_send_message(const ChatWorkUnitMessage&unit){
+void ChatService::process_send_message(const ChatWorkUnitMessage &unit){
 	unsigned char *raw=NULL;
 	if(unit.raw!=NULL){
 		raw=new unsigned char[unit.raw_size];
@@ -299,6 +306,12 @@ void ChatService::process_send_message(const ChatWorkUnitMessage&unit){
 
 	Message msg(0,unit.type,unit.text,name,raw,unit.raw_size);
 	clientcmd_message(msg);
+}
+
+// request a file from the server
+void ChatService::process_get_file(const ChatWorkUnitGetFile &unit){
+	callback.file=unit.callback;
+	clientcmd_get_file(unit.id);
 }
 
 // tell the server user's name
@@ -354,6 +367,15 @@ void ChatService::clientcmd_message(const Message &msg){
 	if(msg.raw_size>0){
 		send(msg.raw,msg.raw_size);
 	}
+}
+
+// request a file from the server
+// implements ClientCommand::GET_FILE
+void ChatService::clientcmd_get_file(unsigned long long id){
+	ClientCommand type=ClientCommand::GET_FILE;
+	send(&type, sizeof(type));
+
+	send(&id, sizeof(id));
 }
 
 // send a heartbeat
@@ -490,4 +512,21 @@ void ChatService::servercmd_message(){
 
 	// tell the user
 	callback.message(message);
+}
+
+void ChatService::servercmd_send_file(){
+	std::uint64_t size;
+	recv(&size, sizeof(size));
+
+	std::unique_ptr<unsigned char> buffer(new unsigned char[size]);
+	recv(buffer.get(), size);
+
+	// handle errors
+	if(size==0||size>INT_MAX){
+		callback.file(NULL, 0);
+		return;
+	}
+
+	// notify the user
+	callback.file(buffer.get(), (int)size);
 }

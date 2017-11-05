@@ -34,6 +34,7 @@ public:
 	void new_chat(const Chat&);
 	unsigned long long new_msg(const Chat&,const Message&);
 	std::vector<Message> get_messages_since(unsigned long long,const std::string&);
+	std::vector<unsigned char> get_file(unsigned long long, const std::string&);
 	bool valid_table_name(const std::string&);
 
 private:

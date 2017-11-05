@@ -46,6 +46,7 @@ private:
 	void process_newchat(const ChatWorkUnitNewChat&);
 	void process_subscribe(const ChatWorkUnitSubscribe&);
 	void process_send_message(const ChatWorkUnitMessage&);
+	void process_get_file(const ChatWorkUnitGetFile&);
 
 	// net commands implementing ClientCommand::*
 	void clientcmd_introduce();
@@ -53,6 +54,7 @@ private:
 	void clientcmd_new_chat(const std::string&,const std::string&);
 	void clientcmd_subscribe(const std::string&,unsigned long long);
 	void clientcmd_message(const Message&);
+	void clientcmd_get_file(unsigned long long);
 	void clientcmd_heartbeat();
 	// net commands implementing ServerCommand::*
 	void servercmd_introduce();
@@ -60,6 +62,7 @@ private:
 	void servercmd_new_chat();
 	void servercmd_subscribe();
 	void servercmd_message();
+	void servercmd_send_file();
 
 	// registered callbacks
 	struct{
@@ -73,6 +76,8 @@ private:
 		std::function<void(bool,std::vector<Message>)> subscribe;
 		// called when message received
 		std::function<void(Message)> message;
+		// called when file is received from server
+		std::function<void(const unsigned char*,int)> file;
 	}callback;
 
 	Database db;

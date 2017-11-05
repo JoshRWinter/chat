@@ -67,12 +67,14 @@ private:
 	void clientcmd_newchat();
 	void clientcmd_subscribe();
 	void clientcmd_message();
+	void clientcmd_get_file();
 	// net commands implementing ServerCommand::*
 	void servercmd_introduce();
 	void servercmd_list_chats(const std::vector<Chat>&);
 	void servercmd_new_chat(bool);
 	void servercmd_subscribe(bool,unsigned long long);
 	void servercmd_message(const Message&);
+	void servercmd_send_file(const std::vector<unsigned char>&);
 	void servercmd_heartbeat();
 
 	Server &parent;

@@ -20,6 +20,7 @@ enum class ServerCommand:std::uint8_t{
 	NEW_CHAT, // sending client receipt of new chat
 	SUBSCRIBE, // server is confirming successful subscription
 	MESSAGE, // server is sending a client a message
+	SEND_FILE, // server sending a file to the client
 	HEARTBEAT // server is sending a heartbeat to client
 };
 
@@ -30,6 +31,7 @@ enum class ClientCommand:std::uint8_t{
 	NEW_CHAT, // client wants to create a new chat
 	SUBSCRIBE, // client wants to subscribe to a chat
 	MESSAGE, // client is sending a message
+	GET_FILE, // client is requesting file from the server
 	HEARTBEAT // client is sending heartbeat to server
 };
 

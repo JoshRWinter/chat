@@ -252,6 +252,43 @@ std::vector<Message> Database::get_messages_since(unsigned long long since,const
 	return messages;
 }
 
+// get a file and return it
+std::vector<unsigned char> Database::get_file(unsigned long long id, const std::string &chatname){
+	const std::string query=std::string("")+
+	"select raw from "+escape_table_name(chatname)+" where id=?;";
+
+	sqlite3_stmt *statement;
+	sqlite3_prepare_v2(conn, query.c_str(), -1, &statement, NULL);
+
+	sqlite3_bind_int64(statement, 1, id);
+
+	unsigned char *raw=NULL;
+	int raw_size=0;
+	int rc;
+	if((rc=sqlite3_step(statement))==SQLITE_ROW){
+
+		raw_size=sqlite3_column_bytes(statement, 0);
+		const unsigned char *r=(unsigned char*)sqlite3_column_blob(statement, 0);
+		if(r!=NULL){
+			raw=new unsigned char[raw_size];
+			memcpy(raw, r, raw_size);
+		}
+	}
+	else{
+		sqlite3_finalize(statement);
+		throw DatabaseException(sqlite3_errmsg(conn));
+	}
+
+	sqlite3_finalize(statement);
+
+	std::vector<unsigned char> buffer(raw_size);
+	memcpy(&buffer[0], raw, raw_size);
+	delete[] raw;
+
+	return buffer;
+}
+
+
 // see if table name is valid
 bool Database::valid_table_name(const std::string &name){
 	// sqlite table names are not allowed to start with "sqlite_..."

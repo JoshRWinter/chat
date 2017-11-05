@@ -44,6 +44,18 @@ void ChatClient::send_image(const std::string &filename, unsigned char *buffer, 
 	service.add_work(unit);
 }
 
+// send a file
+void ChatClient::send_file(const std::string &filename, unsigned char *buffer, int size){
+	auto unit=new ChatWorkUnitMessage(MessageType::FILE, filename, buffer, size);
+	service.add_work(unit);
+}
+
+// request a file from the server
+void ChatClient::get_file(unsigned long long msgid, std::function<void(const unsigned char*,int)> fn){
+	auto unit=new ChatWorkUnitGetFile(msgid, fn);
+	service.add_work(unit);
+}
+
 std::string ChatClient::name()const{
 	return clientname;
 }

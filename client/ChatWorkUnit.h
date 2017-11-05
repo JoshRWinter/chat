@@ -11,7 +11,8 @@ enum class WorkUnitType:std::uint8_t{
 	LIST_CHATS, // refresh the chat list
 	NEW_CHAT, // have the server make a new chat
 	SUBSCRIBE, // subscribe to a chat
-	MESSAGE // send a message
+	MESSAGE, // send a message
+	GET_FILE // requesting a file from the server
 };
 
 struct ChatWorkUnit{
@@ -92,6 +93,18 @@ struct ChatWorkUnitMessage:ChatWorkUnit{
 	const std::string text;
 	unsigned char *raw;
 	const unsigned long long raw_size;
+};
+
+// for getting a file
+struct ChatWorkUnitGetFile:ChatWorkUnit{
+	ChatWorkUnitGetFile(unsigned long long i, std::function<void(const unsigned char*,int)> fn)
+	:ChatWorkUnit(WorkUnitType::GET_FILE)
+	,id(i)
+	,callback(fn)
+	{}
+
+	const unsigned long long id;
+	std::function<void(const unsigned char*,int)> callback;
 };
 
 #endif // CHATWORKUNIT_H

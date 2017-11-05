@@ -152,6 +152,9 @@ void Client::recv_command(){
 	case ClientCommand::NEW_CHAT:
 		clientcmd_newchat();
 		break;
+	case ClientCommand::GET_FILE:
+		clientcmd_get_file();
+		break;
 	case ClientCommand::HEARTBEAT:
 		// ignore
 		break;
@@ -314,6 +317,16 @@ void Client::clientcmd_message(){
 		parent.new_msg(subscribed.value(),msg);
 }
 
+// client is requesting a file
+// implements ClientCommand::SEND_FILE
+void Client::clientcmd_get_file(){
+	std::uint64_t id;
+	recv(&id, sizeof(id));
+
+	std::vector<unsigned char> buffer=parent.get_file(id, subscribed.value().name);
+	servercmd_send_file(buffer);
+}
+
 // send the client their (validated) name back
 // implements ServerCommand::INTRODUCE
 void Client::servercmd_introduce(){
@@ -416,6 +429,17 @@ void Client::servercmd_message(const Message &msg){
 
 	send(&msg.raw_size,sizeof(msg.raw_size));
 	send(msg.raw,msg.raw_size);
+}
+
+// send a file to the client
+void Client::servercmd_send_file(const std::vector<unsigned char> &buffer){
+	ServerCommand type=ServerCommand::SEND_FILE;
+	send(&type, sizeof(type));
+
+	std::uint64_t size=(std::uint64_t)buffer.size();
+	send(&size, sizeof(size));
+
+	send(&buffer[0], size);
 }
 
 // send the client a heartbeat to see if they are disconnected

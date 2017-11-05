@@ -81,6 +81,14 @@ void Server::new_msg(const Chat &chat,Message &msg){
 		return;
 	}
 
+	// if the message contains the file, remove it before sending to everyone
+	// clients obtain files by specifically requesting it, not inline in the message
+	if(msg.type==MessageType::FILE){
+		delete[] msg.raw;
+		msg.raw=NULL;
+		msg.raw_size=0;
+	}
+
 	// inform all subscribed clients of the new message
 	for(std::unique_ptr<Client> &client:client_list){
 		if(client->is_subscribed(chat))
@@ -92,6 +100,11 @@ std::vector<Message> Server::get_messages_since(unsigned long long id,const std:
 	std::lock_guard<std::mutex> lock(mutex);
 
 	return db.get_messages_since(id,name);
+}
+
+// get and return file contents from the database
+std::vector<unsigned char> Server::get_file(unsigned long long id, const std::string &chatname){
+	return db.get_file(id, chatname);
 }
 
 bool Server::valid_table_name(const std::string &name){
