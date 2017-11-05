@@ -51,7 +51,7 @@ void MessageArea::mouseReleaseEvent(QMouseEvent *event){
 	const int y=event->y();
 
 	for(const ImageCache &img:img_cache){
-		if(x>img.x&&x<img.x+50&&y>img.y&&y<img.y+50)
+		if(x>img.x&&x<img.x+100&&y>img.y&&y<img.y+100)
 			img_clicked_fn(&img.map, img.name);
 	}
 }
@@ -90,15 +90,15 @@ void MessageArea::paintEvent(QPaintEvent*){
 			ImageCache *img=MessageArea::get_image(msg.id, img_cache);
 			const std::string filename=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-10);
 			const int filenameheight=painter.fontMetrics().height()*MessageArea::line_count(filename);
-			const int boxheight=70+filenameheight;
+			const int boxheight=120+filenameheight;
 
 			painter.fillRect(x,y,boxwidth,boxheight,rectcolor);
 			painter.fillRect(x,y+boxheight,boxwidth,senderboxheight,sendercolor);
 
 			if(img){
-				const int xpos=x+(boxwidth/2)-25;
+				const int xpos=x+(boxwidth/2)-100;
 				const int ypos=y+10;
-				painter.drawPixmap(QRect(xpos,ypos,50,50), img->map, img->map.rect());
+				painter.drawPixmap(QRect(xpos,ypos,100,100), img->map, img->map.rect());
 				img->x=xpos;
 				img->y=ypos;
 			}
@@ -106,7 +106,7 @@ void MessageArea::paintEvent(QPaintEvent*){
 				painter.drawText(x+10, y+10, "[ image error ]");
 			}
 			// draw the file name
-			painter.drawText(QRect(x+5, y+65, boxwidth, filenameheight), Qt::AlignLeft, filename.c_str());
+			painter.drawText(QRect(x+5, y+115, boxwidth, filenameheight), Qt::AlignLeft, filename.c_str());
 
 			painter.drawText(QRect(x+5,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
 
