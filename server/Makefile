@@ -1,5 +1,5 @@
-CPPFLAGS := -g -c -std=c++17 -Wall -pedantic
-LFLAGS := -pthread -lsqlite3
+CPPFLAGS := -c -O2 -std=c++17 -Wall -pedantic
+LFLAGS := -pthread -lsqlite3 -s
 COMPILER := g++
 REMOVE := rm
 
