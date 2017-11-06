@@ -44,8 +44,11 @@ DialogSession::DialogSession(QWidget *parent, const std::vector<Chat> &cl):QDial
 	setLayout(vlayout);
 
 	list = new QListWidget();
-	for(const Chat &chat:chat_list)
-		list->addItem(chat.name.c_str());
+	for(const Chat &chat:chat_list){
+		auto item=new QListWidgetItem(chat.name.c_str());
+		item->setToolTip(chat.description.c_str());
+		list->addItem(item);
+	}
 	vlayout->addWidget(list);
 	vlayout->addLayout(hlayout);
 
