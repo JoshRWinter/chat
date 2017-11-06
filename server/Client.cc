@@ -228,6 +228,23 @@ void Client::clientcmd_introduce(){
 	servercmd_introduce();
 }
 
+// format the bytes as KB or MB
+std::string Client::format(int bytes){
+	const char BUFFER_SIZE=30;
+	char buffer[BUFFER_SIZE];
+
+	if(bytes>1024*1024){
+		double megabytes=bytes/1024.0/1024.0;
+		std::snprintf(buffer, BUFFER_SIZE, "%.1fMB", megabytes);
+	}
+	else{
+		double kilobytes=bytes/1024.0;
+		std::snprintf(buffer, BUFFER_SIZE, "%.1fKB", kilobytes);
+	}
+
+	return buffer;
+}
+
 // lists the chats
 // implements ClientCommand::LIST_CHATS
 void Client::clientcmd_list_chats(){
@@ -311,18 +328,20 @@ void Client::clientcmd_message(){
 	if(type==MessageType::IMAGE){
 		if(raw_size>MAX_IMAGE_BYTES){
 			delete[] raw;
-			const std::string format=std::to_string(MAX_IMAGE_BYTES/1000/1000)+"MB";
-			servercmd_message_receipt(false, "Images larger than "+format+" are not allowed.");
+			servercmd_message_receipt(false, "Images larger than "+Client::format(MAX_IMAGE_BYTES)+" are not allowed.");
 			return;
 		}
+
+		message+=" ("+Client::format(raw_size)+")";
 	}
 	else if(type==MessageType::FILE){
 		if(raw_size>MAX_FILE_BYTES){
 			delete[] raw;
-			const std::string format=std::to_string(MAX_FILE_BYTES/1000/1000)+"MB";
-			servercmd_message_receipt(false, "Files larger than "+format+" are not allowed.");
+			servercmd_message_receipt(false, "Files larger than "+Client::format(MAX_FILE_BYTES)+" are not allowed.");
 			return;
 		}
+
+		message+=" ("+Client::format(raw_size)+")";
 	}
 	else{
 		if(raw_size>0){

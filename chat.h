@@ -10,8 +10,8 @@
 
 #define HEARTBEAT_FREQUENCY 15
 
-#define MAX_IMAGE_BYTES 6'000'000
-#define MAX_FILE_BYTES 50'000'000
+#define MAX_IMAGE_BYTES (6*1024*1024)
+#define MAX_FILE_BYTES (50*1024*1024)
 
 // command from the server
 enum class ServerCommand:std::uint8_t{

@@ -60,6 +60,7 @@ private:
 	bool subscribe(const std::string&);
 	std::string get_string();
 	void send_string(const std::string&);
+	static std::string format(int);
 
 	// net commands implementing ClientCommand::*
 	void clientcmd_introduce();
