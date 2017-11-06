@@ -34,6 +34,7 @@ public:
 	~tcp();
 	tcp &operator=(const tcp&)=delete;
 	bool operator!()const;
+	operator bool()const;
 	bool target(const std::string &address,unsigned short);
 	bool connect();
 	bool connect(int);

@@ -133,6 +133,10 @@ bool net::tcp::operator!()const{
 	return error();
 }
 
+net::tcp::operator bool()const{
+	return !error();
+}
+
 // attempt to connect to <address> on <port>, fills <name> with canonical name of <address>, returns true on success
 bool net::tcp::target(const std::string &address,unsigned short port){
 	init();
