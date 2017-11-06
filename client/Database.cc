@@ -160,7 +160,7 @@ void Database::newchat(const std::string &chatname){
 		"create table "+Database::escape_table_name(fqchatname)+"(\n"
 		"id integer primary key,"
 		"type int not null,"
-		"message varchar(" MESSAGE_LEN_STR ") not null,"
+		"message text not null,"
 		"name varchar(511) not null,"
 		"raw blob);";
 
