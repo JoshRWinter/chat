@@ -14,6 +14,7 @@
 Session::Session():client("chatdb"){
 	resize(400,600);
 	setWindowTitle("ChatQT");
+	setWindowIcon(QIcon("icon.png"));
 
 	// set the receipt handler
 	receipt = [this](bool success, const std::string &errmsg){
