@@ -36,6 +36,7 @@ public:
 	unsigned char *raw;
 	std::string filename;
 	std::string errmsg;
+	std::string name;
 };
 
 class TextBox:public QTextEdit{

@@ -97,8 +97,9 @@ void Session::customEvent(QEvent *e){
 // connect to server
 void Session::open(){
 	Update *event = new Update(Update::Type::CONNECT);
-	auto callback=[this, event](bool success){
+	auto callback=[this, event](bool success, const std::string &name){
 		event->success=success;
+		event->name=name;
 
 		QCoreApplication::postEvent(this, event);
 	};
@@ -173,6 +174,8 @@ void Session::get_file(unsigned long long id, const std::string &filename){
 
 // event handler for successful connection to the server
 void Session::connected(const Update *event){
+	username=event->name;
+	display->name(username);
 	if(!event->success){
 		QMessageBox box;
 		box.setWindowTitle("Error");
@@ -265,8 +268,6 @@ void Session::accept_name(){
 	serveraddr=addr;
 
 	open();
-	username=client.name();
-	display->name(username);
 }
 
 // when the user returns from DialogSession

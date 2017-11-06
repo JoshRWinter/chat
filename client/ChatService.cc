@@ -266,12 +266,12 @@ void ChatService::process_connect(const ChatWorkUnitConnect &unit){
 			clientcmd_introduce();
 		}
 		else{
-			unit.callback(false);
+			unit.callback(false,{});
 			tcp.close();
 		}
 	}
 	else{
-		unit.callback(false);
+		unit.callback(false,{});
 		tcp.close();
 	}
 }
@@ -395,7 +395,7 @@ void ChatService::clientcmd_heartbeat(){
 void ChatService::servercmd_introduce(){
 	name=get_string();
 
-	callback.connect(true);
+	callback.connect(true, name);
 }
 
 // recv a list of chats from server

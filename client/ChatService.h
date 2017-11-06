@@ -68,7 +68,7 @@ private:
 	// registered callbacks
 	struct{
 		// called on successful connect
-		std::function<void(bool)> connect;
+		std::function<void(bool,const std::string&)> connect;
 		// called on chat list receipt
 		std::function<void(std::vector<Chat>)> chatlist;
 		// called on successful new chat

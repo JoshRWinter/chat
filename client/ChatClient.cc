@@ -7,9 +7,7 @@ ChatClient::~ChatClient(){
 }
 
 // connect to server
-void ChatClient::connect(const std::string &target,const std::string &myname,std::function<void(bool)> callback){
-	clientname=myname;
-
+void ChatClient::connect(const std::string &target,const std::string &myname,std::function<void(bool,const std::string&)> callback){
 	auto unit=new ChatWorkUnitConnect(target,myname,callback);
 	service.add_work(unit);
 }
@@ -54,8 +52,4 @@ void ChatClient::send_file(const std::string &filename, unsigned char *buffer, i
 void ChatClient::get_file(unsigned long long msgid, std::function<void(const unsigned char*,int)> fn){
 	auto unit=new ChatWorkUnitGetFile(msgid, fn);
 	service.add_work(unit);
-}
-
-std::string ChatClient::name()const{
-	return clientname;
 }

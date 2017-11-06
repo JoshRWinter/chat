@@ -23,7 +23,7 @@ struct ChatWorkUnit{
 
 // for connecting to the server
 struct ChatWorkUnitConnect:ChatWorkUnit{
-	ChatWorkUnitConnect(const std::string &t,const std::string &n,std::function<void(bool)> fn)
+	ChatWorkUnitConnect(const std::string &t,const std::string &n,std::function<void(bool,const std::string&)> fn)
 	:ChatWorkUnit(WorkUnitType::CONNECT)
 	,target(t)
 	,myname(n)
@@ -32,7 +32,7 @@ struct ChatWorkUnitConnect:ChatWorkUnit{
 
 	const std::string target;
 	const std::string myname;
-	const std::function<void(bool)> callback;
+	const std::function<void(bool,const std::string&)> callback;
 };
 
 struct ChatWorkUnitListChats:ChatWorkUnit{
