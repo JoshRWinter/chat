@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ChatQt
+Comment=Qt Group Chat Client
+Exec=/usr/bin/chatqt
+Icon=chatqt
+Categories=Utility;
+

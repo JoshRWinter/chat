@@ -16,8 +16,9 @@ struct config{
 };
 
 static std::atomic<bool> running;
-void handler(int);
-void go(const config&);
+static std::string getdbpath();
+static void handler(int);
+static void go(const config&);
 
 int main(int argc, char **argv){
 	running.store(true);
@@ -30,7 +31,7 @@ int main(int argc, char **argv){
 	// parameters
 	config cfg;
 	cfg.port=CHAT_PORT;
-	cfg.dbname="chatdb";
+	cfg.dbname=argc>1?argv[1]:getdbpath();
 
 	try{
 		go(cfg);
@@ -41,6 +42,18 @@ int main(int argc, char **argv){
 	std::cout<<"exiting..."<<std::endl;
 
 	return 0;
+}
+
+#include <wordexp.h>
+std::string getdbpath(){
+	const char *path="~/.chat-server-db";
+	wordexp_t p;
+	wordexp(path, &p, 0);
+
+	std::string fqpath=p.we_wordv[0];
+
+	wordfree(&p);
+	return fqpath;
 }
 
 void go(const config &cfg){

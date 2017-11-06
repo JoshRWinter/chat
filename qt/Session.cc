@@ -11,7 +11,7 @@
 
 #include "Session.h"
 
-Session::Session():client("chatdb"){
+Session::Session(const std::string &dbname):client(dbname){
 	resize(400,600);
 	setWindowTitle("ChatQT");
 	setWindowIcon(QIcon("icon.png"));

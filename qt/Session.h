@@ -56,7 +56,7 @@ private:
 
 class Session:public QWidget{
 public:
-	Session();
+	Session(const std::string&);
 	void customEvent(QEvent*); // OVERRIDE from QObject
 
 private:
