@@ -52,6 +52,8 @@ DialogSession::DialogSession(QWidget *parent, const std::vector<Chat> &cl):QDial
 	QPushButton *ok = new QPushButton("Subscribe");
 	QPushButton *add = new QPushButton("New Session");
 	QPushButton *cancel = new QPushButton("Cancel");
+	if(chat_list.size()==0)
+		ok->setEnabled(false);
 	QObject::connect(ok, &QPushButton::clicked, this, &QDialog::accept);
 	QObject::connect(add, &QPushButton::clicked, this, &DialogSession::add_session);
 	QObject::connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
