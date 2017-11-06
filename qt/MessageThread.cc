@@ -79,24 +79,24 @@ void MessageArea::paintEvent(QPaintEvent*){
 		const QColor rectcolor=me?QColor(140,140,210):QColor(200,200,200);
 		const QColor sendercolor=me?QColor(150,150,220):QColor(170,170,170);
 		const int x=me?X_ME:X_THEM;
-		const std::string formatted_name=MessageArea::reflow(painter.fontMetrics(), msg.sender, boxwidth-10);
+		const std::string formatted_name=MessageArea::reflow(painter.fontMetrics(), msg.sender, boxwidth-20);
 		const int senderboxheight=painter.fontMetrics().height()*MessageArea::line_count(formatted_name)+10;
 
 		// draw the contents of the message
 		if(msg.type==MessageType::TEXT){
-			const std::string formatted=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-10);
+			const std::string formatted=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-20);
 			const int boxheight=painter.fontMetrics().height()*MessageArea::line_count(formatted)+20;
 
 			painter.fillRect(x,y,boxwidth,boxheight,rectcolor);
 			painter.fillRect(x,y+boxheight,boxwidth,senderboxheight,sendercolor);
-			painter.drawText(QRect(x+5,y+5,boxwidth,boxheight),Qt::AlignLeft,formatted.c_str());
-			painter.drawText(QRect(x+5,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
+			painter.drawText(QRect(x+10,y+5,boxwidth,boxheight),Qt::AlignLeft,formatted.c_str());
+			painter.drawText(QRect(x+10,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
 
 			y+=boxheight+senderboxheight+20;
 		}
 		else if(msg.type==MessageType::IMAGE){
 			ImageCache *img=MessageArea::get_image(msg.id, img_cache);
-			const std::string filename=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-10);
+			const std::string filename=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-20);
 			const int filenameheight=painter.fontMetrics().height()*MessageArea::line_count(filename);
 			const int boxheight=120+filenameheight;
 
@@ -114,16 +114,16 @@ void MessageArea::paintEvent(QPaintEvent*){
 				painter.drawText(x+10, y+10, "[ image error ]");
 			}
 			// draw the file name
-			painter.drawText(QRect(x+5, y+115, boxwidth, filenameheight), Qt::AlignCenter, filename.c_str());
+			painter.drawText(QRect(x, y+115, boxwidth, filenameheight), Qt::AlignCenter, filename.c_str());
 
 			// draw the sender's name
-			painter.drawText(QRect(x+5,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
+			painter.drawText(QRect(x+10,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
 
 			y+=boxheight+senderboxheight+20;
 		}
 		else if(msg.type==MessageType::FILE){
 			const ButtonCache *btn=MessageArea::get_btn(msg.id, btn_cache);
-			const std::string filename=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-10);
+			const std::string filename=MessageArea::reflow(painter.fontMetrics(), msg.msg, boxwidth-20);
 			const int filenameheight=painter.fontMetrics().height()*MessageArea::line_count(filename);
 			const int boxheight=35+btn->button->height()+filenameheight;
 
@@ -142,7 +142,7 @@ void MessageArea::paintEvent(QPaintEvent*){
 			painter.drawText(QRect(x, btn->button->y()+btn->button->height()+7, boxwidth, filenameheight), Qt::AlignCenter, filename.c_str());
 
 			// draw the sender's name
-			painter.drawText(QRect(x+5,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
+			painter.drawText(QRect(x+10,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
 
 			y+=boxheight+senderboxheight+20;
 		}
