@@ -171,6 +171,9 @@ void ChatService::recv_server_cmd(){
 	case ServerCommand::MESSAGE:
 		servercmd_message();
 		break;
+	case ServerCommand::MESSAGE_RECEIPT:
+		servercmd_message_receipt();
+		break;
 	case ServerCommand::SEND_FILE:
 		servercmd_send_file();
 		break;
@@ -298,6 +301,8 @@ void ChatService::process_subscribe(const ChatWorkUnitSubscribe &unit){
 
 // send a message
 void ChatService::process_send_message(const ChatWorkUnitMessage &unit){
+	callback.receipt=unit.callback;
+
 	unsigned char *raw=NULL;
 	if(unit.raw!=NULL){
 		raw=new unsigned char[unit.raw_size];
@@ -514,6 +519,23 @@ void ChatService::servercmd_message(){
 	callback.message(message);
 }
 
+// determine if server accepted previously sent message
+// implements ServerCommand::MESSAGE_RECEIPT
+void ChatService::servercmd_message_receipt(){
+	std::uint8_t worked;
+	recv(&worked, sizeof(worked));
+
+	std::string err;
+	if(worked==0){
+		err=get_string();
+	}
+
+	callback.receipt(worked==1, err);
+	callback.receipt=nullptr;
+}
+
+// server is sending file
+// implements ServerCommand::SEND_FILE
 void ChatService::servercmd_send_file(){
 	std::uint64_t size;
 	recv(&size, sizeof(size));

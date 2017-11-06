@@ -313,8 +313,12 @@ void Client::clientcmd_message(){
 
 	Message msg(0,type,message,name,raw,raw_size);
 
-	if(subscribed)
+	if(subscribed){
 		parent.new_msg(subscribed.value(),msg);
+		servercmd_message_receipt(true,{});
+	}
+	else
+		servercmd_message_receipt(false, "You are not subscribed to any chat sessions!");
 }
 
 // client is requesting a file
@@ -429,6 +433,21 @@ void Client::servercmd_message(const Message &msg){
 
 	send(&msg.raw_size,sizeof(msg.raw_size));
 	send(msg.raw,msg.raw_size);
+}
+
+// tell the client whether their sent message was successful
+// implements ServerCommand::MESSAGE_RECEIPT
+void Client::servercmd_message_receipt(bool success, const std::string &msg){
+	ServerCommand type=ServerCommand::MESSAGE_RECEIPT;
+	send(&type, sizeof(type));
+
+	std::uint8_t worked=success?1:0;
+	send(&worked, sizeof(worked));
+
+	if(!success){
+		// send the error message description
+		send_string(msg);
+	}
 }
 
 // send a file to the client

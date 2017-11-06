@@ -20,6 +20,7 @@ public:
 		NEW_CHAT,
 		SUBSCRIBE,
 		MESSAGE,
+		MESSAGE_RECEIPT,
 		GET_FILE
 	};
 
@@ -34,6 +35,7 @@ public:
 	Message msg;
 	unsigned char *raw;
 	std::string filename;
+	std::string errmsg;
 };
 
 class TextBox:public QTextEdit{
@@ -67,12 +69,14 @@ private:
 	void subscribed(const Update*);
 	void new_chat_receipt(const Update*);
 	void message(const Update*);
+	void receipt_received(const Update*);
 	void file_received(const Update*);
 	void display_message(const Message&);
 	void accept_name();
 	void accept_session();
 	void slotImage();
 	void slotFile();
+	std::function<void(bool,const std::string&)> receipt;
 	static unsigned char *read_file(const std::string&,int&);
 	static bool write_file(const std::string&,unsigned char*, int);
 	static std::string truncate(const std::string&);

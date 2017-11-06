@@ -70,7 +70,7 @@ int main(){
 	do{
 		print("enter msg: ");
 		std::getline(std::cin,input);
-		client.send(input);
+		client.send(input,[](bool,const std::string&){});
 	}while(input!="quit");
 
 	/*

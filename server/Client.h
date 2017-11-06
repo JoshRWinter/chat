@@ -74,6 +74,7 @@ private:
 	void servercmd_new_chat(bool);
 	void servercmd_subscribe(bool,unsigned long long);
 	void servercmd_message(const Message&);
+	void servercmd_message_receipt(bool, const std::string&);
 	void servercmd_send_file(const std::vector<unsigned char>&);
 	void servercmd_heartbeat();
 

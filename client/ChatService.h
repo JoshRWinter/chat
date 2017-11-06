@@ -62,6 +62,7 @@ private:
 	void servercmd_new_chat();
 	void servercmd_subscribe();
 	void servercmd_message();
+	void servercmd_message_receipt();
 	void servercmd_send_file();
 
 	// registered callbacks
@@ -76,6 +77,8 @@ private:
 		std::function<void(bool,std::vector<Message>)> subscribe;
 		// called when message received
 		std::function<void(Message)> message;
+		// called when server sends message receipt
+		std::function<void(bool,const std::string&)> receipt;
 		// called when file is received from server
 		std::function<void(const unsigned char*,int)> file;
 	}callback;

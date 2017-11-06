@@ -15,8 +15,17 @@ Session::Session():client("chatdb"){
 	resize(400,600);
 	setWindowTitle("ChatQT");
 
-	auto action = [this]{
-		client.send(inputbox->toPlainText().toStdString());
+	// set the receipt handler
+	receipt = [this](bool success, const std::string &errmsg){
+		Update *event=new Update(Update::Type::MESSAGE_RECEIPT);
+		event->success=success;
+		event->errmsg=errmsg;
+
+		QCoreApplication::postEvent(this, event);
+	};
+
+	auto inputbox_action = [this]{
+		client.send(inputbox->toPlainText().toStdString(), receipt);
 		inputbox->setText("");
 	};
 
@@ -29,7 +38,7 @@ Session::Session():client("chatdb"){
 	};
 
 	display=new MessageThread(img_click, file_click);
-	inputbox=new TextBox(action);
+	inputbox=new TextBox(inputbox_action);
 	inputbox->setMaximumHeight(100);
 	auto image=new QPushButton("Attach Image");
 	auto file=new QPushButton("Attach File");
@@ -78,6 +87,9 @@ void Session::customEvent(QEvent *e){
 	case Update::Type::GET_FILE:
 		file_received(event);
 		delete[] event->raw;
+		break;
+	case Update::Type::MESSAGE_RECEIPT:
+		receipt_received(event);
 		break;
 	}
 }
@@ -216,6 +228,16 @@ void Session::message(const Update *event){
 	display_message(event->msg);
 }
 
+// event handler for message receipt
+void Session::receipt_received(const Update *event){
+	if(!event->success){
+		QMessageBox box(this);
+		box.setWindowTitle("Error");
+		box.setText(event->errmsg.c_str());
+		box.exec();
+	}
+}
+
 // event handler for file received
 void Session::file_received(const Update *event){
 	QFileDialog save(this, (std::string("Save ")+"\""+event->filename+"\"").c_str());
@@ -276,7 +298,7 @@ void Session::slotImage(){
 			return;
 		}
 
-		client.send_image(Session::truncate(list.at(0).toStdString()), buffer, size);
+		client.send_image(Session::truncate(list.at(0).toStdString()), buffer, size, receipt);
 	}
 }
 
@@ -295,7 +317,7 @@ void Session::slotFile(){
 			return;
 		}
 
-		client.send_file(Session::truncate(filename), buffer, size);
+		client.send_file(Session::truncate(filename), buffer, size, receipt);
 	}
 }
 

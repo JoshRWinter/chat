@@ -74,11 +74,12 @@ struct ChatWorkUnitSubscribe:ChatWorkUnit{
 
 // for sending a message
 struct ChatWorkUnitMessage:ChatWorkUnit{
-	ChatWorkUnitMessage(MessageType t,const std::string &m,const unsigned char *r,unsigned long long rs)
+	ChatWorkUnitMessage(MessageType t,const std::string &m,const unsigned char *r,unsigned long long rs, std::function<void(bool,const std::string&)> fn)
 	:ChatWorkUnit(WorkUnitType::MESSAGE)
 	,type(t)
 	,text(m)
 	,raw_size(rs)
+	,callback(fn)
 	{
 		if(r!=NULL){
 			raw=new unsigned char[raw_size];
@@ -93,6 +94,7 @@ struct ChatWorkUnitMessage:ChatWorkUnit{
 	const std::string text;
 	unsigned char *raw;
 	const unsigned long long raw_size;
+	std::function<void(bool,const std::string&)> callback;
 };
 
 // for getting a file

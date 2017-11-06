@@ -33,20 +33,20 @@ void ChatClient::subscribe(const std::string &name,std::function<void(bool,std::
 }
 
 // send a text message
-void ChatClient::send(const std::string &text){
-	auto unit=new ChatWorkUnitMessage(MessageType::TEXT,text,NULL,0);
+void ChatClient::send(const std::string &text, std::function<void(bool,const std::string&)> fn){
+	auto unit=new ChatWorkUnitMessage(MessageType::TEXT,text,NULL,0,fn);
 	service.add_work(unit);
 }
 
 // send an image
-void ChatClient::send_image(const std::string &filename, unsigned char *buffer, int size){
-	auto unit=new ChatWorkUnitMessage(MessageType::IMAGE, filename, buffer, size);
+void ChatClient::send_image(const std::string &filename, unsigned char *buffer, int size, std::function<void(bool,const std::string&)> fn){
+	auto unit=new ChatWorkUnitMessage(MessageType::IMAGE, filename, buffer, size, fn);
 	service.add_work(unit);
 }
 
 // send a file
-void ChatClient::send_file(const std::string &filename, unsigned char *buffer, int size){
-	auto unit=new ChatWorkUnitMessage(MessageType::FILE, filename, buffer, size);
+void ChatClient::send_file(const std::string &filename, unsigned char *buffer, int size, std::function<void(bool,const std::string&)> fn){
+	auto unit=new ChatWorkUnitMessage(MessageType::FILE, filename, buffer, size, fn);
 	service.add_work(unit);
 }
 
