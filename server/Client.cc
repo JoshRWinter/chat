@@ -307,9 +307,37 @@ void Client::clientcmd_message(){
 		recv(raw,raw_size);
 	}
 
+	// make sure raw size isn't too big
+	if(type==MessageType::IMAGE){
+		if(raw_size>MAX_IMAGE_BYTES){
+			delete[] raw;
+			const std::string format=std::to_string(MAX_IMAGE_BYTES/1000/1000)+"MB";
+			servercmd_message_receipt(false, "Images larger than "+format+" are not allowed.");
+			return;
+		}
+	}
+	else if(type==MessageType::FILE){
+		if(raw_size>MAX_FILE_BYTES){
+			delete[] raw;
+			const std::string format=std::to_string(MAX_FILE_BYTES/1000/1000)+"MB";
+			servercmd_message_receipt(false, "Files larger than "+format+" are not allowed.");
+			return;
+		}
+	}
+	else{
+		if(raw_size>0){
+			delete[] raw;
+			servercmd_message_receipt(false, "The \"raw\" field is not allowed for general text messages.\nThis likely indicates a client implementation error.");
+			return;
+		}
+	}
+
 	// don't let messages of zero length through
-	if(message.length()==0)
+	if(message.length()==0){
+		servercmd_message_receipt(false, "No zero-length messages!");
+		delete[] raw;
 		return;
+	}
 
 	Message msg(0,type,message,name,raw,raw_size);
 

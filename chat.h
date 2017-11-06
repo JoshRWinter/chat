@@ -10,8 +10,8 @@
 
 #define HEARTBEAT_FREQUENCY 15
 
-#define MESSAGE_LEN_INT 510 // these two must
-#define MESSAGE_LEN_STR "510" // be kept in sync
+#define MAX_IMAGE_BYTES 6'000'000
+#define MAX_FILE_BYTES 50'000'000
 
 // command from the server
 enum class ServerCommand:std::uint8_t{

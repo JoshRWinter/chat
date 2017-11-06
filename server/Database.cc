@@ -128,7 +128,7 @@ void Database::new_chat(const Chat &chat){
 	"create table "+Database::escape_table_name(chat.name)+" (\n"
 	"id integer primary key autoincrement,\n"
 	"type int not null,\n" // MessageType enum in chat.h
-	"message varchar(" MESSAGE_LEN_STR ") not null,\n"
+	"message text not null,\n"
 	"name varchar(511) not null,\n"
 	"raw blob);"; // reserved for file content, image content, will be null for normal messages
 
