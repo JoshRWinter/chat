@@ -4,11 +4,19 @@
 #include <chrono>
 #include <exception>
 
-#include <signal.h>
+#include <string.h>
 
 #include "../chat.h"
 #include "Server.h"
 #include "log.h"
+
+#ifdef _WIN32
+#include <windows.h>
+BOOL WINAPI handler(DWORD);
+#else
+#include <signal.h>
+static void handler(int);
+#endif // _WIN32
 
 struct config{
 	unsigned short port;
@@ -17,16 +25,22 @@ struct config{
 
 static std::atomic<bool> running;
 static std::string getdbpath();
-static void handler(int);
 static void go(const config&);
 
 int main(int argc, char **argv){
 	running.store(true);
 
+#ifdef _WIN32
+	if(!SetConsoleCtrlHandler(handler, TRUE)){
+		std::cout<<"error setting console handler"<<std::endl;
+		return 1;
+	}
+#else
 	// signal handlers
 	signal(SIGINT,handler);
 	signal(SIGTERM,handler);
 	signal(SIGPIPE,handler);
+#endif // _WIN32
 
 	// parameters
 	config cfg;
@@ -41,9 +55,23 @@ int main(int argc, char **argv){
 
 	std::cout<<"exiting..."<<std::endl;
 
+#ifdef _WIN32
+	Sleep(700);
+#endif // _WIN32
+
 	return 0;
 }
 
+#ifdef _WIN32
+std::string getdbpath(){
+	const char *path="%userprofile%\\chat-server.db";
+	char expanded[150]="INVALID PATH";
+
+	ExpandEnvironmentStrings(path, expanded, 149);
+	
+	return expanded;
+}
+#else
 #include <wordexp.h>
 std::string getdbpath(){
 	const char *path="~/.chat-server-db";
@@ -55,6 +83,7 @@ std::string getdbpath(){
 	wordfree(&p);
 	return fqpath;
 }
+#endif // _WIN32
 
 void go(const config &cfg){
 	Server server(cfg.port,cfg.dbname);
@@ -68,6 +97,15 @@ void go(const config &cfg){
 	}
 }
 
+#ifdef _WIN32
+BOOL WINAPI handler(DWORD signal){
+	if(signal==CTRL_C_EVENT){
+		running.store(false);
+	}
+
+	return true;
+}
+#else
 void handler(int sig){
 	switch(sig){
 	case SIGTERM:
@@ -79,3 +117,4 @@ void handler(int sig){
 		break;
 	}
 }
+#endif // _WIN32
