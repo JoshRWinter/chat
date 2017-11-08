@@ -2,8 +2,17 @@
 #define NETWORK_H
 
 #include <string>
+#ifdef _WIN32
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
+#include <winsock2.h>
+#include <Ws2tcpip.h>
+#include <sys/types.h>
+#define ssize_t SSIZE_T
+#else
 #include <netinet/in.h>
 #include <netdb.h>
+#endif // WIN32
 
 namespace net{
 
@@ -77,7 +86,7 @@ public:
 	void close();
 	void send(const void*,int,const udp_id&);
 	void recv(void*,int,udp_id&);
-	int peek()const;
+	unsigned peek();
 	bool error()const;
 
 private:
@@ -97,7 +106,7 @@ public:
 	void close();
 	void send(const void*,unsigned);
 	void recv(void*,unsigned);
-	int peek()const;
+	unsigned peek();
 	bool error()const;
 
 private:

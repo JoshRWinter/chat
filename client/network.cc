@@ -1,16 +1,26 @@
+#include "network.h"
+#include <iostream>
+
+#ifndef _WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
-
 #include <errno.h>
+#endif
+
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+
 #include <time.h>
 
-#include "network.h"
+#ifdef _WIN32
+WSADATA wsa;
+static auto resultorino=WSAStartup(MAKEWORD(1,1), &wsa);
+#endif // _WIN32
 
 net::tcp_server::tcp_server(unsigned short port){
 	bind(port);
@@ -41,7 +51,11 @@ int net::tcp_server::accept(){
 // cleanup
 void net::tcp_server::close(){
 	if(scan != -1){
+#ifdef _WIN32
+		::closesocket(scan);
+#else
 		::close(scan);
+#endif
 		scan=-1;
 	}
 }
@@ -62,11 +76,22 @@ bool net::tcp_server::bind(unsigned short port){
 		return false;
 
 	// non blocking
+#ifdef _WIN32
+	u_long nonblock=1;
+	ioctlsocket(scan, FIONBIO, &nonblock);
+#else
 	fcntl(scan,F_SETFL,fcntl(scan,F_GETFL,0)|O_NONBLOCK);
+#endif // _WIN32
 
+#ifdef _WIN32
+	// make this a dual stack socket
+	u_long optmode=0;
+	setsockopt(scan, IPPROTO_IPV6, 27, (char*)&optmode, 40);
+#else
 	// make this socket reusable
 	int reuse=1;
 	setsockopt(scan,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(int));
+#endif
 
 	// bind this socket to <port>
 	if(-1==::bind(scan,(sockaddr*)&addr,sizeof(sockaddr_in6))){
@@ -208,7 +233,11 @@ bool net::tcp::connect(int seconds){
 		if(result)
 			break;
 
+#ifdef _WIN32
+		Sleep(MICRO_REST/100);
+#else
 		usleep(MICRO_REST);
+#endif // _WIN32
 	}while(time(NULL)-start<seconds);
 
 	// back to blocking
@@ -262,9 +291,13 @@ int net::tcp::send_nonblock(const void *buffer,unsigned size){
 
 	set_blocking(false);
 
-	int sent=::send(sock,buffer,size,0);
+	int sent=::send(sock,(const char*)buffer,size,0);
 	if(sent==-1){
+#ifdef _WIN32
+		if(WSAGetLastError()==WSAEWOULDBLOCK){
+#else
 		if(errno==EWOULDBLOCK){ // acceptable, will happen a lot
+#endif // _WIN32
 			sent=0;
 		}
 		else{
@@ -283,9 +316,13 @@ int net::tcp::recv_nonblock(void *buffer,unsigned size){
 
 	set_blocking(false);
 
-	int received=::recv(sock,buffer,size,0);
+	int received=::recv(sock,(char*)buffer,size,0);
 	if(received==-1){
+#ifdef _WIN32
+		if(WSAGetLastError()==WSAEWOULDBLOCK){
+#else
 		if(errno==EWOULDBLOCK){ // acceptable, will happen a lot
+#endif // _WIN32
 			received=0;
 		}
 		else{
@@ -302,8 +339,13 @@ unsigned net::tcp::peek(){
 	if(sock==-1)
 		return 0;
 
+#ifdef _WIN32
+	u_long available=0;
+	ioctlsocket(sock,FIONREAD,&available);
+#else
 	int available=0;
 	ioctl(sock,FIONREAD,&available);
+#endif // _WIN32
 
 	if(available<0){
 		this->close();
@@ -326,7 +368,11 @@ const std::string &net::tcp::get_name()const{
 // cleanup
 void net::tcp::close(){
 	if(sock!=-1){
+#ifdef _WIN32
+		::closesocket(sock);
+#else
 		::close(sock);
+#endif // _WIN32
 		sock=-1;
 	}
 
@@ -340,13 +386,23 @@ void net::tcp::close(){
 void net::tcp::set_blocking(bool block){
 	if(block){
 		if(!blocking){
+#ifdef _WIN32
+			u_long nonblock=0;
+			ioctlsocket(sock, FIONBIO, &nonblock);
+#else
 			fcntl(sock,F_SETFL,fcntl(sock,F_GETFL,0)&~O_NONBLOCK); // set to blocking
+#endif // _WIN32
 			blocking=true;
 		}
 	}
 	else if(!block){
 		if(blocking){
+#ifdef _WIN32
+			u_long nonblock=1;
+			ioctlsocket(sock, FIONBIO, &nonblock);
+#else
 			fcntl(sock,F_SETFL,fcntl(sock,F_GETFL,0)|O_NONBLOCK); // set to non blocking
+#endif // _WIN32
 			blocking=false;
 		}
 	}
@@ -389,7 +445,11 @@ bool net::udp_server::operator!()const{
 // cleanup
 void net::udp_server::close(){
 	if(sock!=-1){
+#ifdef _WIN32
+		::closesocket(sock);
+#else
 		::close(sock);
+#endif // _WIN32
 		sock=-1;
 	}
 }
@@ -405,7 +465,7 @@ void net::udp_server::send(const void *buffer,int len,const udp_id &id){
 	}
 
 	// no such thing as partial sends for sendto with udp
-	int result=sendto(sock,buffer,len,0,(sockaddr*)&id.storage,id.len);
+	int result=sendto(sock,(const char*)buffer,len,0,(sockaddr*)&id.storage,id.len);
 	if(result!=len){
 		this->close();
 		return;
@@ -418,7 +478,7 @@ void net::udp_server::recv(void *buffer,int len,udp_id &id){
 		return;
 
 	// no partial receives
-	int result=recvfrom(sock,buffer,len,0,(sockaddr*)&id.storage,&id.len);
+	int result=recvfrom(sock,(char*)buffer,len,0,(sockaddr*)&id.storage,&id.len);
 	if(result!=len){
 		this->close();
 		return;
@@ -427,12 +487,22 @@ void net::udp_server::recv(void *buffer,int len,udp_id &id){
 }
 
 // how many bytes are available on the socket
-int net::udp_server::peek()const{
+unsigned net::udp_server::peek(){
 	if(sock==-1)
 		return 0;
 
+#ifdef _WIN32
+	u_long available;
+	ioctlsocket(sock,FIONREAD,&available);
+#else
 	int available=0;
 	ioctl(sock,FIONREAD,&available);
+#endif // _WIN32
+
+	if(available<0){
+		this->close();
+		return 0;
+	}
 
 	return available;
 }
@@ -467,9 +537,15 @@ bool net::udp_server::bind(unsigned short port){
 		return false;
 	}
 
-	// bind to port
+#ifdef _WIN32
+	// make this a dual stack socket
+	u_long optmode=0;
+	setsockopt(sock, IPPROTO_IPV6, 27, (char*)&optmode, 40);
+#else
+	// make this socket reusable
 	int reuse=1;
 	setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(int));
+#endif // _WIN32
 	if(::bind(sock,ai->ai_addr,ai->ai_addrlen)){
 		this->close();
 		return false;
@@ -516,7 +592,7 @@ void net::udp::send(const void *buffer,unsigned len){
 		return;
 
 	// no such thing as a partial send for udp with sendto
-	ssize_t result=sendto(sock,buffer,len,0,(sockaddr*)ai->ai_addr,ai->ai_addrlen);
+	ssize_t result=sendto(sock,(const char*)buffer,len,0,(sockaddr*)ai->ai_addr,ai->ai_addrlen);
 	if(result!=len){
 		this->close();
 		return;
@@ -532,19 +608,29 @@ void net::udp::recv(void *buffer,unsigned len){
 	socklen_t src_len=sizeof(sockaddr_storage);
 
 	// no such thing as a partial send for udp with sendto
-	ssize_t result=recvfrom(sock,buffer,len,0,(sockaddr*)&src_addr,&src_len);
+	ssize_t result=recvfrom(sock,(char*)buffer,len,0,(sockaddr*)&src_addr,&src_len);
 	if(result!=len){
 		this->close();
 		return;
 	}
 }
 
-int net::udp::peek()const{
+unsigned net::udp::peek(){
 	if(sock==-1)
 		return 0;
 
+#ifdef _WIN32
+	u_long avail=0;
+	ioctlsocket(sock,FIONREAD,&avail);
+#else
 	int avail=0;
 	ioctl(sock,FIONREAD,&avail);
+#endif // _WIN32
+
+	if(avail<0){
+		this->close();
+		return 0;
+	}
 
 	return avail;
 }
@@ -555,7 +641,11 @@ bool net::udp::error()const{
 
 void net::udp::close(){
 	if(sock!=-1){
+#ifdef _WIN32
+		::closesocket(sock);
+#else
 		::close(sock);
+#endif // _WIN32
 		sock=-1;
 	}
 
