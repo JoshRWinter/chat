@@ -66,7 +66,7 @@ std::string getdbpath(){
 	return expanded;
 }
 std::string getprofilepath(){
-	const char *path="%userprofile%\\chat.profile";
+	const char *path="%userprofile%\\chat.profile.txt";
 	char expanded[150]="INVALID PATH";
 
 	ExpandEnvironmentStrings(path, expanded, 149);
