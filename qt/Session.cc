@@ -267,7 +267,7 @@ void Session::receipt_received(const Update *event){
 void Session::file_received(const Update *event){
 	QFileDialog save(this, (std::string("Save ")+"\""+event->filename+"\"").c_str());
 	save.setAcceptMode(QFileDialog::AcceptSave);
-	save.selectFile(event->filename.c_str());
+	save.selectFile(Session::remove_size_tag(event->filename).c_str());
 	if(save.exec()){
 		std::string fname=save.selectedFiles().at(0).toStdString();
 		if(!Session::write_file(fname, event->raw, event->raw_size)){
@@ -387,4 +387,12 @@ std::string Session::truncate(const std::string &fname){
 	}
 
 	return fname.substr(position);
+}
+
+// remove the size tag from the file name
+// e.g. turn "file.zip (83.5KB)" into "file.zip"
+std::string Session::remove_size_tag(const std::string &fname){
+	unsigned pos=fname.rfind(" ");
+
+	return fname.substr(0, pos);
 }

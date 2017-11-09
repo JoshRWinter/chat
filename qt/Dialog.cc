@@ -6,6 +6,7 @@
 #include <QFileDialog>
 
 #include "Dialog.h"
+#include "Session.h"
 
 DialogName::DialogName(const std::string &name, const std::string &addr, QWidget *parent):QDialog(parent){
 	setWindowTitle("Input your name and server address");
@@ -121,7 +122,7 @@ DialogImage::DialogImage(const QPixmap *qpm, const std::string &name):map(qpm),f
 	auto save_slot=[this]{
 		QFileDialog chooser(this, "Save Image");
 		chooser.setAcceptMode(QFileDialog::AcceptSave);
-		chooser.selectFile(fname.c_str());
+		chooser.selectFile(Session::remove_size_tag(fname).c_str());
 		if(chooser.exec()){
 			map->save(chooser.selectedFiles().at(0));
 		}

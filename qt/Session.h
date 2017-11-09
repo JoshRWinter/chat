@@ -59,6 +59,7 @@ public:
 	Session(const std::string&, const std::string&, const std::string&);
 	void customEvent(QEvent*); // OVERRIDE from QObject
 	std::tuple<std::string, std::string> get_names()const;
+	static std::string remove_size_tag(const std::string&);
 
 private:
 	void open();
