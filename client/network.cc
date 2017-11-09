@@ -1,5 +1,4 @@
 #include "network.h"
-#include <iostream>
 
 #ifndef _WIN32
 #include <sys/socket.h>
