@@ -4,7 +4,13 @@
 
 static std::string getdbpath();
 
+#ifdef _WIN32
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int){
+	int argc=0;
+	char **argv=NULL;
+#else
 int main(int argc, char **argv){
+#endif // _WIN32
 	QApplication app(argc,argv);
 
 	Session session(getdbpath());
