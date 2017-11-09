@@ -13,7 +13,7 @@
 
 class DialogName:public QDialog{
 public:
-	DialogName(QWidget*);
+	DialogName(const std::string&, const std::string&, QWidget*);
 	std::tuple<std::string, std::string> get()const;
 
 private:

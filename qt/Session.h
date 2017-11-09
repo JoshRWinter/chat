@@ -56,8 +56,9 @@ private:
 
 class Session:public QWidget{
 public:
-	Session(const std::string&);
+	Session(const std::string&, const std::string&, const std::string&);
 	void customEvent(QEvent*); // OVERRIDE from QObject
+	std::tuple<std::string, std::string> get_names()const;
 
 private:
 	void open();
@@ -87,6 +88,7 @@ private:
 	QPushButton *image;
 	QPushButton *file;
 
+	std::string originalusername;
 	std::string username;
 	std::string serveraddr;
 	std::unique_ptr<DialogName> dname;

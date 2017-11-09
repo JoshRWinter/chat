@@ -11,7 +11,7 @@
 
 #include "Session.h"
 
-Session::Session(const std::string &dbname):client(dbname){
+Session::Session(const std::string &name, const std::string &addr, const std::string &dbname):client(dbname){
 	resize(400,600);
 	setWindowTitle("ChatQT");
 	setWindowIcon(QIcon("icon.png"));
@@ -61,7 +61,7 @@ Session::Session(const std::string &dbname):client(dbname){
 	hlayout->addWidget(file);
 
 	// get the users name and server address
-	dname.reset(new DialogName(this));
+	dname.reset(new DialogName(name, addr, this));
 	QObject::connect(dname.get(), &QDialog::accepted, this, &Session::accept_name);
 	QObject::connect(dname.get(), &QDialog::rejected, qApp, &QApplication::quit);
 	dname->setModal(true);
@@ -98,6 +98,10 @@ void Session::customEvent(QEvent *e){
 		receipt_received(event);
 		break;
 	}
+}
+
+std::tuple<std::string, std::string> Session::get_names()const{
+	return {originalusername, serveraddr};
 }
 
 // connect to server
@@ -283,6 +287,7 @@ void Session::display_message(const Message &msg){
 void Session::accept_name(){
 	const auto [name, addr] = dname->get();
 	username=name;
+	originalusername=name;
 	serveraddr=addr;
 
 	open();

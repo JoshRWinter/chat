@@ -7,7 +7,7 @@
 
 #include "Dialog.h"
 
-DialogName::DialogName(QWidget *parent):QDialog(parent){
+DialogName::DialogName(const std::string &name, const std::string &addr, QWidget *parent):QDialog(parent){
 	setWindowTitle("Input your name and server address");
 	resize(300, 0);
 
@@ -19,6 +19,7 @@ DialogName::DialogName(QWidget *parent):QDialog(parent){
 	vlayout->addLayout(flayout);
 	field_name = new QLineEdit;
 	field_addr = new QLineEdit;
+
 	flayout->addRow("Your Name", field_name);
 	flayout->addRow("Server Address", field_addr);
 
@@ -29,6 +30,12 @@ DialogName::DialogName(QWidget *parent):QDialog(parent){
 	vlayout->addLayout(hlayout);
 	hlayout->addWidget(ok);
 	hlayout->addWidget(cancel);
+
+	if(name.length()>0||addr.length()>0){
+		field_name->setText(name.c_str());
+		field_addr->setText(addr.c_str());
+		field_addr->setFocus();
+	}
 }
 
 std::tuple<std::string, std::string> DialogName::get()const{
