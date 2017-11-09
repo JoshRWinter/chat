@@ -9,6 +9,7 @@
 ChatService::ChatService(const std::string &dbpath):
 	db(dbpath),
 	working(true),
+	connected(false),
 	work_unit_count(0),
 	last_heartbeat(0),
 	handle(std::ref(*this))
@@ -40,7 +41,9 @@ void ChatService::operator()(){
 	try{
 		loop();
 	}catch(const NetworkException &e){
+		connected.store(false);
 		reconnect();
+		connected.store(true);
 		// recurse
 		this->operator()();
 	}catch(const ShutdownException &e){
@@ -52,6 +55,8 @@ void ChatService::operator()(){
 		// recurse
 		this->operator()();
 	}
+
+	connected.store(false);
 }
 
 void ChatService::send(const void *data,int size){
@@ -102,6 +107,10 @@ std::string ChatService::get_string(){
 	raw[size]=0;
 
 	return {&raw[0]};
+}
+
+bool ChatService::is_connected()const{
+	return connected.load();
 }
 
 // work unit loop
@@ -253,15 +262,16 @@ void ChatService::process_connect(const ChatWorkUnitConnect &unit){
 	// connect to server
 	if(tcp.target(unit.target,CHAT_PORT)){
 		time_t current=time(NULL);
-		bool connected=false;
+		bool success=false;
 		// 5 second timeout
-		while(time(NULL)-current<5&&!connected){
-			connected=tcp.connect();
+		while(time(NULL)-current<5&&!success){
+			success=tcp.connect();
 			std::this_thread::sleep_for(std::chrono::milliseconds(5));
 		}
 
-		if(connected){
+		if(success){
 			// introduce myself
+			connected.store(true);
 			name=unit.myname;
 			clientcmd_introduce();
 		}

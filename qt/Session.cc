@@ -26,8 +26,10 @@ Session::Session(const std::string &dbname):client(dbname){
 	};
 
 	auto inputbox_action = [this]{
-		client.send(inputbox->toPlainText().toStdString(), receipt);
-		inputbox->setText("");
+		if(client.connected()){
+			client.send(inputbox->toPlainText().toStdString(), receipt);
+			inputbox->setText("");
+		}
 	};
 
 	auto img_click = [this](const QPixmap *map, const std::string &name){
@@ -41,8 +43,11 @@ Session::Session(const std::string &dbname):client(dbname){
 	display=new MessageThread(img_click, file_click);
 	inputbox=new TextBox(inputbox_action);
 	inputbox->setMaximumHeight(100);
-	auto image=new QPushButton("Attach Image");
-	auto file=new QPushButton("Attach File");
+	inputbox->setReadOnly(true);
+	image=new QPushButton("Attach Image");
+	file=new QPushButton("Attach File");
+	image->setEnabled(false);
+	file->setEnabled(false);
 	QObject::connect(image, &QPushButton::clicked, this, &Session::slotImage);
 	QObject::connect(file, &QPushButton::clicked, this, &Session::slotFile);
 
@@ -175,7 +180,7 @@ void Session::get_file(unsigned long long id, const std::string &filename){
 
 // event handler for successful connection to the server
 void Session::connected(const Update *event){
-	if(username!=event->name){
+	if(username!=event->name&&event->success){
 		QMessageBox box(this);
 		box.setWindowTitle("Your name has been changed");
 		box.setText(("There is already someone logged in as \""+username+"\".\nYou have been renamed to \""+event->name+"\".").c_str());
@@ -215,6 +220,11 @@ void Session::subscribed(const Update *event){
 
 		qApp->quit();
 	}
+
+	// enable the text box
+	inputbox->setReadOnly(false);
+	image->setEnabled(true);
+	file->setEnabled(true);
 
 	for(const Message &msg:event->msg_list)
 		display_message(msg);

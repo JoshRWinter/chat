@@ -15,6 +15,7 @@ class ChatClient{
 public:
 	ChatClient(const std::string&);
 	~ChatClient();
+	bool connected()const;
 	void connect(const std::string&,const std::string&,std::function<void(bool,const std::string&)>);
 	void list_chats(std::function<void(std::vector<Chat>)>);
 	void newchat(const std::string&,const std::string&,std::function<void(bool)>);

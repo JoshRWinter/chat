@@ -34,6 +34,7 @@ public:
 	void recv(void*,int);
 	void send_string(const std::string&);
 	std::string get_string();
+	bool is_connected()const;
 
 private:
 	void loop();
@@ -90,6 +91,7 @@ private:
 	std::string name; // user's name
 	std::string chatname; // subscribed chat
 	std::atomic<bool> working; // service thread currently running
+	std::atomic<bool> connected; // currently connected to server
 	std::atomic<int> work_unit_count; // atomically accessible version of units.size()
 	std::queue<const ChatWorkUnit*> units;
 	std::mutex mutex; // guards access to <units>

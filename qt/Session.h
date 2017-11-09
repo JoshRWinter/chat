@@ -84,6 +84,8 @@ private:
 
 	MessageThread *display;
 	QTextEdit *inputbox;
+	QPushButton *image;
+	QPushButton *file;
 
 	std::string username;
 	std::string serveraddr;

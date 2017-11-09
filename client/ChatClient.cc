@@ -6,6 +6,10 @@ ChatClient::ChatClient(const std::string &dbpath):service(dbpath){
 ChatClient::~ChatClient(){
 }
 
+bool ChatClient::connected()const{
+	return service.is_connected();
+}
+
 // connect to server
 void ChatClient::connect(const std::string &target,const std::string &myname,std::function<void(bool,const std::string&)> callback){
 	auto unit=new ChatWorkUnitConnect(target,myname,callback);
