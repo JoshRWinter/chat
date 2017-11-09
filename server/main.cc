@@ -68,7 +68,7 @@ std::string getdbpath(){
 	char expanded[150]="INVALID PATH";
 
 	ExpandEnvironmentStrings(path, expanded, 149);
-	
+
 	return expanded;
 }
 #else
