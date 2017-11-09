@@ -175,6 +175,13 @@ void Session::get_file(unsigned long long id, const std::string &filename){
 
 // event handler for successful connection to the server
 void Session::connected(const Update *event){
+	if(username!=event->name){
+		QMessageBox box(this);
+		box.setWindowTitle("Your name has been changed");
+		box.setText(("There is already someone logged in as \""+username+"\".\nYou have been renamed to \""+event->name+"\".").c_str());
+		box.exec();
+	}
+
 	username=event->name;
 	display->name(username);
 	if(!event->success){
