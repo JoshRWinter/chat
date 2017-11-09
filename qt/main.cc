@@ -13,6 +13,16 @@ int main(int argc, char **argv){
 	return app.exec();
 }
 
+#ifdef _WIN32
+#include <windows.h>
+std::string getdbpath(){
+	const char *path="%userprofile%\\chat.db";
+	char expanded[150]="INVALID PATH";
+
+	ExpandEnvironmentStrings(path, expanded, 149);
+	return expanded;
+}
+#else
 #include <wordexp.h>
 std::string getdbpath(){
 	wordexp_t p;
@@ -23,3 +33,4 @@ std::string getdbpath(){
 
 	return fqpath;
 }
+#endif // _WIN32

@@ -7,7 +7,11 @@
 
 #include "ChatService.h"
 
+#ifdef _WIN32
+class __declspec(dllexport) ChatClient{
+#else
 class ChatClient{
+#endif // _WIN32
 public:
 	ChatClient(const std::string&);
 	~ChatClient();
