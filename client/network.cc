@@ -205,7 +205,10 @@ bool net::tcp::connect(){
 	if(sock==-1)
 		return false;
 
+#ifndef _WIN32
+	// todo: fix this for windows
 	set_blocking(false);
+#endif // _WIN32
 
 	bool result=::connect(sock,ai->ai_addr,ai->ai_addrlen)==0;
 
