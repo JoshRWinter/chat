@@ -101,9 +101,10 @@ void go(const config &cfg){
 BOOL WINAPI handler(DWORD signal){
 	if(signal==CTRL_C_EVENT){
 		running.store(false);
+		return true;
 	}
 
-	return true;
+	return false;
 }
 #else
 void handler(int sig){
