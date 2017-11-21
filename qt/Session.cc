@@ -365,7 +365,7 @@ unsigned char *Session::read_file(const std::string &name, int &size){
 }
 
 bool Session::write_file(const std::string &name, unsigned char *raw, int size){
-	std::ofstream out(name);
+	std::ofstream out(name, std::ofstream::binary);
 	if(!out)
 		return false;
 
