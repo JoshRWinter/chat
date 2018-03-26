@@ -128,6 +128,7 @@ void Database::new_chat(const Chat &chat){
 	"create table "+Database::escape_table_name(chat.name)+" (\n"
 	"id integer primary key autoincrement,\n"
 	"type int not null,\n" // MessageType enum in chat.h
+	"unixtime int not null,\n" // unix time
 	"message text not null,\n"
 	"name varchar(511) not null,\n"
 	"raw blob);"; // reserved for file content, image content, will be null for normal messages
@@ -168,16 +169,17 @@ void Database::new_chat(const Chat &chat){
 // insert a new message into database
 unsigned long long Database::new_msg(const Chat &chat,const Message &msg){
 	std::string insert=std::string("")+
-	"insert into "+Database::escape_table_name(chat.name)+" (type,message,name,raw) values\n"
-	"(?,?,?,?);";
+	"insert into "+Database::escape_table_name(chat.name)+" (type,unixtime,message,name,raw) values\n"
+	"(?,?,?,?,?);";
 
 	sqlite3_stmt *statement;
 	sqlite3_prepare_v2(conn,insert.c_str(),-1,&statement,NULL);
 
 	sqlite3_bind_int(statement,1,static_cast<int>(msg.type));
-	sqlite3_bind_text(statement,2,msg.msg.c_str(),-1,SQLITE_TRANSIENT);
-	sqlite3_bind_text(statement,3,msg.sender.c_str(),-1,SQLITE_TRANSIENT);
-	sqlite3_bind_blob(statement,4,msg.raw,msg.raw_size,SQLITE_TRANSIENT);
+	sqlite3_bind_int(statement,2,msg.unixtime);
+	sqlite3_bind_text(statement,3,msg.msg.c_str(),-1,SQLITE_TRANSIENT);
+	sqlite3_bind_text(statement,4,msg.sender.c_str(),-1,SQLITE_TRANSIENT);
+	sqlite3_bind_blob(statement,5,msg.raw,msg.raw_size,SQLITE_TRANSIENT);
 
 	if(sqlite3_step(statement)!=SQLITE_DONE){
 		sqlite3_finalize(statement);
@@ -229,8 +231,8 @@ std::vector<Message> Database::get_messages_since(unsigned long long since,const
 		int raw_size=0;
 		if(getblob){
 			// get the blob first
-			raw_size=sqlite3_column_bytes(statement,4);
-			const unsigned char *r=(unsigned char*)sqlite3_column_blob(statement,4);
+			raw_size=sqlite3_column_bytes(statement,5);
+			const unsigned char *r=(unsigned char*)sqlite3_column_blob(statement,5);
 			if(r!=NULL){
 				raw=new unsigned char[raw_size];
 				memcpy(raw,r,raw_size);
@@ -240,8 +242,9 @@ std::vector<Message> Database::get_messages_since(unsigned long long since,const
 		messages.push_back({
 			(decltype(Message::id))sqlite3_column_int(statement,0),
 			type,
-			(char*)sqlite3_column_text(statement,2),
+			sqlite3_column_int(statement,2),
 			(char*)sqlite3_column_text(statement,3),
+			(char*)sqlite3_column_text(statement,4),
 			raw,
 			(decltype(Message::raw_size))raw_size
 		});

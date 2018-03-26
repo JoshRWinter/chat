@@ -1,4 +1,4 @@
-CPPFLAGS := `pkg-config --cflags Qt5Widgets` -O2 -std=c++17 -fpic -Wall -pedantic
+CPPFLAGS := `pkg-config --cflags Qt5Widgets` -std=c++17 -fpic -Wall -pedantic
 LFLAGS := `pkg-config --libs Qt5Widgets` -L../client -lchat -s
 REMOVE := rm
 COMPILER := g++

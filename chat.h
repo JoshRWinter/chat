@@ -44,13 +44,14 @@ enum class MessageType:std::uint8_t{
 
 // the message object
 struct Message{
-	Message():id(0),raw(NULL),raw_size(0){}
-	Message(unsigned long long i,MessageType t,const std::string &m,const std::string &s,unsigned char *r,unsigned long long rs)
-	:id(i),type(t),msg(m),sender(s),raw(r),raw_size(rs){}
+	Message():id(0),unixtime(0),raw(NULL),raw_size(0){}
+	Message(unsigned long long i,MessageType t,int ut,const std::string &m,const std::string &s,unsigned char *r,unsigned long long rs)
+	:id(i),type(t),unixtime(ut),msg(m),sender(s),raw(r),raw_size(rs){}
 
 	Message(const Message &rhs){ // copy constructor
 		id=rhs.id;
 		type=rhs.type;
+		unixtime=rhs.unixtime;
 		msg=rhs.msg;
 		sender=rhs.sender;
 		raw_size=rhs.raw_size;
@@ -66,6 +67,7 @@ struct Message{
 	Message(Message &&other){ // move constructor
 		id=other.id;
 		type=other.type;
+		unixtime=other.unixtime;
 		msg=std::move(other.msg);
 		sender=std::move(other.sender);
 		raw_size=other.raw_size;
@@ -84,6 +86,7 @@ struct Message{
 
 		id=rhs.id;
 		type=rhs.type;
+		unixtime=rhs.unixtime;
 		msg=std::move(rhs.msg);
 		sender=std::move(rhs.sender);
 		raw=rhs.raw;
@@ -100,6 +103,7 @@ struct Message{
 
 		id=rhs.id;
 		type=rhs.type;
+		unixtime=rhs.unixtime;
 		msg=rhs.msg;
 		sender=rhs.sender;
 		raw_size=rhs.raw_size;
@@ -115,6 +119,7 @@ struct Message{
 
 	unsigned long long id;
 	MessageType type;
+	std::int32_t unixtime;
 	std::string msg;
 	std::string sender;
 	unsigned char *raw;

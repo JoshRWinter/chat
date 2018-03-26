@@ -358,7 +358,7 @@ void Client::clientcmd_message(){
 		return;
 	}
 
-	Message msg(0,type,message,name,raw,raw_size);
+	Message msg(0,type,time(NULL),message,name,raw,raw_size);
 
 	if(subscribed){
 		parent.new_msg(subscribed.value(),msg);
@@ -447,6 +447,9 @@ void Client::servercmd_subscribe(bool success,unsigned long long max){
 		// send the message type
 		send(&msg.type,sizeof(type));
 
+		// send the unixtime
+		send(&msg.unixtime,sizeof(msg.unixtime));
+
 		// send msg
 		send_string(msg.msg);
 
@@ -474,6 +477,9 @@ void Client::servercmd_message(const Message &msg){
 
 	// type
 	send(&msg.type,sizeof(msg.type));
+
+	// unixtime
+	send(&msg.unixtime, sizeof(msg.unixtime));
 
 	send_string(msg.msg);
 	send_string(msg.sender);

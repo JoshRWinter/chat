@@ -11,6 +11,8 @@ struct ImageCache{
 	ImageCache(const std::string &n, const unsigned char *raw, unsigned long long size, unsigned long long i)
 	:name(n)
 	,id(i)
+	,x(0)
+	,y(0)
 	{
 		valid=map.loadFromData(raw, size);
 	}
@@ -53,6 +55,7 @@ protected:
 private:
 	static std::string reflow(const QFontMetrics&, const std::string&, int);
 	static std::vector<std::string> reflow_word(const QFontMetrics&, const std::string&, int);
+	static std::string get_date_str(int);
 	static std::vector<std::string> split(const QFontMetrics&, const std::string &text, int);
 	static int line_count(const std::string&);
 	static ImageCache *get_image(unsigned long long, std::vector<ImageCache>&);

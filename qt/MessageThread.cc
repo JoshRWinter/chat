@@ -6,6 +6,7 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QVBoxLayout>
+#include <QDateTime>
 
 #include "MessageThread.h"
 
@@ -31,7 +32,9 @@ void MessageThread::name(const std::string &name){
 	area->name(name);
 }
 
-MessageArea::MessageArea(MessageThread *p, std::function<void(const QPixmap*, const std::string&)> img_fn, std::function<void(unsigned long long, const std::string&)> file_fn):parent(p),img_clicked_fn(img_fn),file_clicked_fn(file_fn){}
+MessageArea::MessageArea(MessageThread *p, std::function<void(const QPixmap*, const std::string&)> img_fn, std::function<void(unsigned long long, const std::string&)> file_fn):parent(p),img_clicked_fn(img_fn),file_clicked_fn(file_fn){
+	scroll_to_bottom = true;
+}
 
 void MessageArea::add(const Message &m){
 	if(m.type==MessageType::IMAGE){
@@ -81,6 +84,7 @@ void MessageArea::paintEvent(QPaintEvent*){
 		const int x=me?X_ME:X_THEM;
 		const std::string formatted_name=MessageArea::reflow(painter.fontMetrics(), msg.sender, boxwidth-20);
 		const int senderboxheight=painter.fontMetrics().height()*MessageArea::line_count(formatted_name)+10;
+		const std::string date_str=get_date_str(msg.unixtime);
 
 		// draw the contents of the message
 		if(msg.type==MessageType::TEXT){
@@ -91,6 +95,7 @@ void MessageArea::paintEvent(QPaintEvent*){
 			painter.fillRect(x,y+boxheight,boxwidth,senderboxheight,sendercolor);
 			painter.drawText(QRect(x+10,y+5,boxwidth,boxheight),Qt::AlignLeft,formatted.c_str());
 			painter.drawText(QRect(x+10,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
+			painter.drawText(QRect(x,y+boxheight+5,boxwidth-5,senderboxheight),Qt::AlignRight,date_str.c_str());
 
 			y+=boxheight+senderboxheight+20;
 		}
@@ -119,6 +124,9 @@ void MessageArea::paintEvent(QPaintEvent*){
 			// draw the sender's name
 			painter.drawText(QRect(x+10,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
 
+			// draw date
+			painter.drawText(QRect(x,y+boxheight+5,boxwidth-5,senderboxheight),Qt::AlignRight,date_str.c_str());
+
 			y+=boxheight+senderboxheight+20;
 		}
 		else if(msg.type==MessageType::FILE){
@@ -143,6 +151,9 @@ void MessageArea::paintEvent(QPaintEvent*){
 
 			// draw the sender's name
 			painter.drawText(QRect(x+10,y+boxheight+5,boxwidth,senderboxheight),Qt::AlignLeft,formatted_name.c_str());
+
+			// draw date
+			painter.drawText(QRect(x,y+boxheight+5,boxwidth-5,senderboxheight),Qt::AlignRight,date_str.c_str());
 
 			y+=boxheight+senderboxheight+20;
 		}
@@ -220,6 +231,10 @@ std::vector<std::string> MessageArea::reflow_word(const QFontMetrics &metrics, c
 	split.push_back(line);
 
 	return split;
+}
+
+std::string MessageArea::get_date_str(int unixtime){
+	return QDateTime::fromSecsSinceEpoch(unixtime).toString("ddd, M/d/yy hh:mm:ss AP").toStdString();
 }
 
 std::vector<std::string> MessageArea::split(const QFontMetrics &metrics, const std::string &text, const int maxwidth){

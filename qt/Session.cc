@@ -144,16 +144,15 @@ void Session::new_chat(const std::string &name, const std::string &description){
 
 // subscribe a user to a chat
 void Session::subscribe(const std::string &chat){
-	Update *event = new Update(Update::Type::SUBSCRIBE);
-
-	auto callback=[this, event](bool success, std::vector<Message> msg_list){
+	auto callback=[this](bool success, std::vector<Message> msg_list){
+		Update *event = new Update(Update::Type::SUBSCRIBE);
 		event->success=success;
 		event->msg_list=msg_list;
 
 		QCoreApplication::postEvent(this, event);
 	};
 
-	auto msgcallback=[this, event](Message msg){
+	auto msgcallback=[this](Message msg){
 
 		Update *newmsg=new Update(Update::Type::MESSAGE);
 		newmsg->msg=msg;

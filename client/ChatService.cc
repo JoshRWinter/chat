@@ -319,7 +319,7 @@ void ChatService::process_send_message(const ChatWorkUnitMessage &unit){
 		memcpy(raw,unit.raw,unit.raw_size);
 	}
 
-	Message msg(0,unit.type,unit.text,name,raw,unit.raw_size);
+	Message msg(0,unit.type,0,unit.text,name,raw,unit.raw_size);
 	clientcmd_message(msg);
 }
 
@@ -470,6 +470,10 @@ void ChatService::servercmd_subscribe(){
 		MessageType type;
 		recv(&type,sizeof(type));
 
+		// recv unix time
+		std::int32_t unixtime;
+		recv(&unixtime, sizeof(unixtime));
+
 		const std::string &msg=get_string();
 		const std::string &sender=get_string();
 
@@ -484,7 +488,7 @@ void ChatService::servercmd_subscribe(){
 			recv(raw,raw_size);
 		}
 
-		msgs.push_back({id,type,msg,sender,raw,raw_size});
+		msgs.push_back({id,type,unixtime,msg,sender,raw,raw_size});
 	}
 
 	// give the client messages that were already in this chat
@@ -507,6 +511,10 @@ void ChatService::servercmd_message(){
 	MessageType type;
 	recv(&type,sizeof(type));
 
+	// unixtime
+	std::int32_t unixtime;
+	recv(&unixtime, sizeof(unixtime));
+
 	const std::string &msg=get_string();
 	const std::string &sender=get_string();
 
@@ -520,7 +528,7 @@ void ChatService::servercmd_message(){
 		recv(raw,raw_size);
 	}
 
-	Message message(id,type,msg,sender,raw,raw_size);
+	Message message(id,type,unixtime,msg,sender,raw,raw_size);
 
 	// store it in the db
 	db.newmsg(message,chatname);
@@ -550,7 +558,7 @@ void ChatService::servercmd_send_file(){
 	std::uint64_t size;
 	recv(&size, sizeof(size));
 
-	std::unique_ptr<unsigned char> buffer(new unsigned char[size]);
+	std::unique_ptr<unsigned char[]> buffer(new unsigned char[size]);
 	recv(buffer.get(), size);
 
 	// handle errors
