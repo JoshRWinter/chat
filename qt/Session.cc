@@ -11,7 +11,7 @@
 
 #include "Session.h"
 
-Session::Session(const std::string &name, const std::string &addr, const std::string &dbname):client(dbname){
+Session::Session(const std::string &name, const std::string &addr, const std::string &dbname):percent(0), client(dbname){
 	resize(400,600);
 	setWindowTitle("ChatQT");
 	setWindowIcon(QIcon("icon.png"));
@@ -21,6 +21,8 @@ Session::Session(const std::string &name, const std::string &addr, const std::st
 		Update *event=new Update(Update::Type::MESSAGE_RECEIPT);
 		event->success=success;
 		event->errmsg=errmsg;
+		inputbox->setDisabled(false);
+		inputbox->setFocus();
 
 		QCoreApplication::postEvent(this, event);
 	};
@@ -29,6 +31,7 @@ Session::Session(const std::string &name, const std::string &addr, const std::st
 		if(client.connected()){
 			client.send(inputbox->toPlainText().toStdString(), receipt);
 			inputbox->setText("");
+			inputbox->setDisabled(true);
 		}
 	};
 
@@ -178,7 +181,9 @@ void Session::get_file(unsigned long long id, const std::string &filename){
 		QCoreApplication::postEvent(this, event);
 	};
 
-	client.get_file(id, callback);
+	client.get_file(id, percent, callback);
+	DialogProgress dlg(filename, percent, true);
+	dlg.exec();
 }
 
 // event handler for successful connection to the server
@@ -322,6 +327,7 @@ void Session::slotImage(){
 		}
 
 		client.send_image(Session::truncate(list.at(0).toStdString()), buffer, size, receipt);
+		inputbox->setDisabled(true);
 	}
 }
 
@@ -340,7 +346,10 @@ void Session::slotFile(){
 			return;
 		}
 
-		client.send_file(Session::truncate(filename), buffer, size, receipt);
+		inputbox->setDisabled(true);
+		client.send_file(Session::truncate(filename), buffer, size, percent, receipt);
+		DialogProgress dlg(Session::truncate(filename), percent, false);
+		dlg.exec();
 	}
 }
 

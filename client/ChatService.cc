@@ -13,7 +13,9 @@ ChatService::ChatService(const std::string &dbpath):
 	work_unit_count(0),
 	last_heartbeat(0),
 	handle(std::ref(*this))
-{}
+{
+	callback.percent = NULL;
+}
 
 ChatService::~ChatService(){
 	working.store(false);
@@ -59,29 +61,49 @@ void ChatService::operator()(){
 	connected.store(false);
 }
 
-void ChatService::send(const void *data,int size){
+void ChatService::send(const void *data,int size,std::atomic<int> *percent){
 	int sent=0;
 	while(sent!=size){
 		sent+=tcp.send_nonblock((char*)data+sent,size-sent);
 
-		if(!tcp)
+		if(!tcp){
+			if(percent != NULL)
+				percent->store(-1);
 			throw NetworkException();
+		}
 
-		if(!working.load())
+		if(!working.load()){
+			if(percent != NULL)
+				percent->store(-1);
 			throw ShutdownException();
+		}
+
+		// update percent
+		if(percent != NULL)
+			percent->store(((float)sent / size) * 100);
 	}
 }
 
-void ChatService::recv(void *data,int size){
+void ChatService::recv(void *data,int size,std::atomic<int> *percent){
 	int got=0;
 	while(got!=size){
 		got+=tcp.recv_nonblock((char*)data+got,size-got);
 
-		if(!tcp)
+		if(!tcp){
+			if(percent != NULL)
+				percent->store(-1);
 			throw NetworkException();
+		}
 
-		if(!working.load())
+		if(!working.load()){
+			if(percent != NULL)
+				percent->store(-1);
 			throw ShutdownException();
+		}
+
+		// update percent
+		if(percent != NULL)
+			percent->store(((float)got / size) * 100);
 	}
 }
 
@@ -312,6 +334,7 @@ void ChatService::process_subscribe(const ChatWorkUnitSubscribe &unit){
 // send a message
 void ChatService::process_send_message(const ChatWorkUnitMessage &unit){
 	callback.receipt=unit.callback;
+	callback.percent=unit.percent;
 
 	unsigned char *raw=NULL;
 	if(unit.raw!=NULL){
@@ -326,6 +349,7 @@ void ChatService::process_send_message(const ChatWorkUnitMessage &unit){
 // request a file from the server
 void ChatService::process_get_file(const ChatWorkUnitGetFile &unit){
 	callback.file=unit.callback;
+	callback.percent=unit.percent;
 	clientcmd_get_file(unit.id);
 }
 
@@ -380,7 +404,7 @@ void ChatService::clientcmd_message(const Message &msg){
 	// raw size
 	send(&msg.raw_size,sizeof(msg.raw_size));
 	if(msg.raw_size>0){
-		send(msg.raw,msg.raw_size);
+		send(msg.raw,msg.raw_size,callback.percent);
 	}
 }
 
@@ -559,7 +583,7 @@ void ChatService::servercmd_send_file(){
 	recv(&size, sizeof(size));
 
 	std::unique_ptr<unsigned char[]> buffer(new unsigned char[size]);
-	recv(buffer.get(), size);
+	recv(buffer.get(), size, callback.percent);
 
 	// handle errors
 	if(size==0||size>INT_MAX){

@@ -1,9 +1,13 @@
+#include <chrono>
+
 #include <QBoxLayout>
 #include <QPushButton>
 #include <QFormLayout>
 #include <QLabel>
 #include <QScrollArea>
 #include <QFileDialog>
+#include <QTimer>
+#include <QProgressBar>
 
 #include "Dialog.h"
 #include "Session.h"
@@ -146,4 +150,36 @@ DialogImage::DialogImage(const QPixmap *qpm, const std::string &name):map(qpm),f
 	label->setPixmap(*map);
 	layout->addWidget(area);
 	layout->addWidget(save);
+}
+
+DialogProgress::DialogProgress(const std::string &filename, const std::atomic<int> &percent, bool downloading){
+	auto vbox = new QVBoxLayout;
+	setLayout(vbox);
+
+	const std::string action = downloading ? "Downloading" : "Uploading";
+
+	auto label = new QLabel((action + " " + filename).c_str());
+	auto bar = new QProgressBar;
+	auto timer = new QTimer(this);
+	QObject::connect(timer, &QTimer::timeout, [this, &percent, bar, timer]{
+		const int value = percent.load();
+
+		if(value == 100){
+			timer->stop();
+			this->accept();
+			return;
+		}
+
+		if(value == -1){
+			timer->stop();
+			this->reject();
+			return;
+		}
+
+		bar->setValue(value);
+	});
+	timer->start(std::chrono::milliseconds(50));
+
+	vbox->addWidget(label);
+	vbox->addWidget(bar);
 }

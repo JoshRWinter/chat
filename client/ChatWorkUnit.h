@@ -74,11 +74,12 @@ struct ChatWorkUnitSubscribe:ChatWorkUnit{
 
 // for sending a message
 struct ChatWorkUnitMessage:ChatWorkUnit{
-	ChatWorkUnitMessage(MessageType t,const std::string &m,const unsigned char *r,unsigned long long rs, std::function<void(bool,const std::string&)> fn)
+	ChatWorkUnitMessage(MessageType t,const std::string &m,const unsigned char *r,unsigned long long rs, std::atomic<int> *pcnt, std::function<void(bool,const std::string&)> fn)
 	:ChatWorkUnit(WorkUnitType::MESSAGE)
 	,type(t)
 	,text(m)
 	,raw_size(rs)
+	,percent(pcnt)
 	,callback(fn)
 	{
 		if(r!=NULL){
@@ -94,18 +95,21 @@ struct ChatWorkUnitMessage:ChatWorkUnit{
 	const std::string text;
 	unsigned char *raw;
 	const unsigned long long raw_size;
+	std::atomic<int> *const percent;
 	std::function<void(bool,const std::string&)> callback;
 };
 
 // for getting a file
 struct ChatWorkUnitGetFile:ChatWorkUnit{
-	ChatWorkUnitGetFile(unsigned long long i, std::function<void(const unsigned char*,int)> fn)
+	ChatWorkUnitGetFile(unsigned long long i, std::atomic<int> *pcnt, std::function<void(const unsigned char*,int)> fn)
 	:ChatWorkUnit(WorkUnitType::GET_FILE)
 	,id(i)
+	,percent(pcnt)
 	,callback(fn)
 	{}
 
 	const unsigned long long id;
+	std::atomic<int> *const percent;
 	std::function<void(const unsigned char*,int)> callback;
 };
 

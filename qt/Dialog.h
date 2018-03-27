@@ -55,4 +55,9 @@ private:
 	const std::string fname;
 };
 
+class DialogProgress:public QDialog{
+public:
+	DialogProgress(const std::string &, const std::atomic<int>&, bool);
+};
+
 #endif // DIALOG_H

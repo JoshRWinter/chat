@@ -30,8 +30,8 @@ public:
 	~ChatService();
 	void add_work(const ChatWorkUnit*);
 	void operator()();
-	void send(const void*,int);
-	void recv(void*,int);
+	void send(const void*,int,std::atomic<int>* = NULL);
+	void recv(void*,int,std::atomic<int>* = NULL);
 	void send_string(const std::string&);
 	std::string get_string();
 	bool is_connected()const;
@@ -82,6 +82,8 @@ private:
 		std::function<void(bool,const std::string&)> receipt;
 		// called when file is received from server
 		std::function<void(const unsigned char*,int)> file;
+		// percentage tracker
+		std::atomic<int> *percent;
 	}callback;
 
 	Database db;

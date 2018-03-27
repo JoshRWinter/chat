@@ -89,6 +89,7 @@ private:
 	QPushButton *image;
 	QPushButton *file;
 
+	std::atomic<int> percent;
 	std::string originalusername;
 	std::string username;
 	std::string serveraddr;
