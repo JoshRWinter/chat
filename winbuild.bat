@@ -1,3 +1,5 @@
+call qtpath.bat
+
 echo BUILDING THE SERVER
 cd server
 cl /EHsc /std:c++17 *.cc ..\sqlite3.lib ws2_32.lib /link /out:chat-server.exe
@@ -20,5 +22,5 @@ cd ..
 
 echo BUILDING QT FRONT END
 cd qt
-cl /I"C:\Qt\5.9.1\msvc2017_64\include" /I"C:\Qt\5.9.1\msvc2017_64\include\QtCore" /I"C:\Qt\5.9.1\msvc2017_64\include\QtGui" /I"C:\Qt\5.9.1\msvc2017_64\include\QtWidgets" /EHsc /std:c++17 *.cc chat.lib C:\Qt\5.9.1\msvc2017_64\lib\Qt5Core.lib C:\Qt\5.9.1\msvc2017_64\lib\Qt5Widgets.lib C:\Qt\5.9.1\msvc2017_64\lib\Qt5Gui.lib /link /out:chatqt.exe
+cl /I%qtpath%\include /I%qtpath%\include\QtCore /I%qtpath%\include\QtGui /I%qtpath%\include\QtWidgets /EHsc /std:c++17 *.cc chat.lib %qtpath%\lib\Qt5Core.lib %qtpath%\lib\Qt5Widgets.lib %qtpath%\lib\Qt5Gui.lib /link /out:chatqt.exe
 cd ..
