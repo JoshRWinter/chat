@@ -74,26 +74,19 @@ struct ChatWorkUnitSubscribe:ChatWorkUnit{
 
 // for sending a message
 struct ChatWorkUnitMessage:ChatWorkUnit{
-	ChatWorkUnitMessage(MessageType t,const std::string &m,const unsigned char *r,unsigned long long rs, std::atomic<int> *pcnt, std::function<void(bool,const std::string&)> fn)
+	ChatWorkUnitMessage(MessageType t,const std::string &m,unsigned char *r,unsigned long long rs, std::atomic<int> *pcnt, std::function<void(bool,const std::string&)> fn)
 	:ChatWorkUnit(WorkUnitType::MESSAGE)
 	,type(t)
 	,text(m)
+	,raw(r)
 	,raw_size(rs)
 	,percent(pcnt)
 	,callback(fn)
-	{
-		if(r!=NULL){
-			raw=new unsigned char[raw_size];
-			memcpy(raw,r,raw_size);
-		}
-		else
-			raw=NULL;
-	}
-	~ChatWorkUnitMessage(){delete[] raw;}
+	{}
 
 	const MessageType type;
 	const std::string text;
-	unsigned char *raw;
+	unsigned char *const raw;
 	const unsigned long long raw_size;
 	std::atomic<int> *const percent;
 	std::function<void(bool,const std::string&)> callback;

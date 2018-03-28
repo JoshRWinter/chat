@@ -338,13 +338,7 @@ void ChatService::process_send_message(const ChatWorkUnitMessage &unit){
 	callback.receipt=unit.callback;
 	callback.percent=unit.percent;
 
-	unsigned char *raw=NULL;
-	if(unit.raw!=NULL){
-		raw=new unsigned char[unit.raw_size];
-		memcpy(raw,unit.raw,unit.raw_size);
-	}
-
-	Message msg(0,unit.type,0,unit.text,name,raw,unit.raw_size);
+	Message msg(0,unit.type,0,unit.text,name,unit.raw,unit.raw_size);
 	clientcmd_message(msg);
 }
 
