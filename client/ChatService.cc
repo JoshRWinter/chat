@@ -64,7 +64,9 @@ void ChatService::operator()(){
 void ChatService::send(const void *data,int size,std::atomic<int> *percent){
 	int sent=0;
 	while(sent!=size){
-		sent+=tcp.send_nonblock((char*)data+sent,size-sent);
+		const int sendblock = 4096;
+		const int sendcap = size - sent > sendblock ? sendblock : (size - sent);
+		sent+=tcp.send_nonblock((char*)data+sent,sendcap);
 
 		if(!tcp){
 			if(percent != NULL)

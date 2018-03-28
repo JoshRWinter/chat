@@ -178,7 +178,7 @@ DialogProgress::DialogProgress(const std::string &filename, const std::atomic<in
 
 		bar->setValue(value);
 	});
-	timer->start(std::chrono::milliseconds(50));
+	timer->start(50);
 
 	vbox->addWidget(label);
 	vbox->addWidget(bar);
