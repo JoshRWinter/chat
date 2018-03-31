@@ -48,7 +48,7 @@ private:
 
 class DialogImage:public QDialog{
 public:
-	DialogImage(const QPixmap*, const std::string&);
+	DialogImage(QWidget*, const QPixmap*, const std::string&);
 
 private:
 	const QPixmap *const map;
@@ -57,7 +57,7 @@ private:
 
 class DialogProgress:public QDialog{
 public:
-	DialogProgress(const std::string &, const std::atomic<int>&, bool);
+	DialogProgress(QWidget*, const std::string &, const std::atomic<int>&, bool);
 };
 
 #endif // DIALOG_H

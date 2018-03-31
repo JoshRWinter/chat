@@ -36,7 +36,7 @@ Session::Session(const std::string &name, const std::string &addr, const std::st
 	};
 
 	auto img_click = [this](const QPixmap *map, const std::string &name){
-		DialogImage view(map,name);
+		DialogImage view(this,map,name);
 		view.exec();
 	};
 	auto file_click = [this](const unsigned long long id, const std::string &filename){
@@ -182,7 +182,7 @@ void Session::get_file(unsigned long long id, const std::string &filename){
 	};
 
 	client.get_file(id, percent, callback);
-	DialogProgress dlg(filename, percent, true);
+	DialogProgress dlg(this, filename, percent, true);
 	dlg.exec();
 }
 
@@ -348,7 +348,7 @@ void Session::slotFile(){
 
 		inputbox->setDisabled(true);
 		client.send_file(Session::truncate(filename), buffer, size, percent, receipt);
-		DialogProgress dlg(Session::truncate(filename), percent, false);
+		DialogProgress dlg(this, Session::truncate(filename), percent, false);
 		dlg.exec();
 	}
 }

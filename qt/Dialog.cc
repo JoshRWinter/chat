@@ -122,7 +122,7 @@ std::tuple<std::string, std::string> DialogNewSession::get()const{
 	return {name->text().toStdString(), desc->toPlainText().toStdString()};
 }
 
-DialogImage::DialogImage(const QPixmap *qpm, const std::string &name):map(qpm),fname(name){
+DialogImage::DialogImage(QWidget *parent, const QPixmap *qpm, const std::string &name):QDialog(parent),map(qpm),fname(name){
 	auto save_slot=[this]{
 		QFileDialog chooser(this, "Save Image");
 		chooser.setAcceptMode(QFileDialog::AcceptSave);
@@ -152,7 +152,7 @@ DialogImage::DialogImage(const QPixmap *qpm, const std::string &name):map(qpm),f
 	layout->addWidget(save);
 }
 
-DialogProgress::DialogProgress(const std::string &filename, const std::atomic<int> &percent, bool downloading){
+DialogProgress::DialogProgress(QWidget *parent, const std::string &filename, const std::atomic<int> &percent, bool downloading):QDialog(parent){
 	auto vbox = new QVBoxLayout;
 	setLayout(vbox);
 
