@@ -3,6 +3,9 @@
 
 #include <functional>
 #include <string>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
 
 #include "../chat.h"
 
@@ -104,6 +107,54 @@ struct ChatWorkUnitGetFile:ChatWorkUnit{
 	const unsigned long long id;
 	std::atomic<int> *const percent;
 	std::function<void(const unsigned char*,int)> callback;
+};
+
+class ChatWorkQueue{
+public:
+	~ChatWorkQueue(){
+		std::lock_guard<std::mutex> lock(mutex);
+		while(work.size() > 0){
+			const ChatWorkUnit *const unit = work.front();
+			work.pop();
+			delete unit;
+		}
+	}
+
+	void push(const ChatWorkUnit *unit){
+		{
+			std::lock_guard<std::mutex> lock(mutex);
+			work.push(unit);
+		}
+
+		cvar.notify_one();
+	}
+
+	const ChatWorkUnit *pop_wait(int millis){
+		auto predicate = [this]{
+			return work.size() != 0;
+		};
+
+		std::chrono::duration<int, std::ratio<1, 1000>> timeout(millis);
+
+		std::unique_lock<std::mutex> lock(mutex);
+		if(cvar.wait_for(lock, timeout, predicate)){
+			const ChatWorkUnit *unit = work.front();
+			work.pop();
+			return unit;
+		}
+		else
+			return NULL;
+	}
+
+	int count(){
+		std::lock_guard<std::mutex> lock(mutex);
+		return work.size();
+	}
+
+private:
+	std::condition_variable cvar;
+	std::mutex mutex;
+	std::queue<const ChatWorkUnit*> work;
 };
 
 #endif // CHATWORKUNIT_H

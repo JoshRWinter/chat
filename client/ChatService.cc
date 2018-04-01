@@ -10,7 +10,6 @@ ChatService::ChatService(const std::string &dbpath):
 	db(dbpath),
 	working(true),
 	connected(false),
-	work_unit_count(0),
 	last_heartbeat(0),
 	handle(std::ref(*this))
 {
@@ -20,22 +19,12 @@ ChatService::ChatService(const std::string &dbpath):
 ChatService::~ChatService(){
 	working.store(false);
 	handle.join();
-
-	// clear the work list
-	while(units.size()>0){
-		const ChatWorkUnit *unit=units.front();
-		units.pop();
-		delete unit;
-	}
 }
 
 // accessed from multiple threads
 // takes ownership of <unit>
 void ChatService::add_work(const ChatWorkUnit *unit){
-	std::lock_guard<std::mutex> lock(mutex);
-
-	units.push(unit);
-	++work_unit_count;
+	work_queue.push(unit);
 }
 
 // entry point for the worker thread
@@ -49,8 +38,10 @@ void ChatService::operator()(){
 		// recurse
 		this->operator()();
 	}catch(const ShutdownException &e){
-		if(work_unit_count.load()>0)
-			log_error(std::string("shutting down with ")+std::to_string(work_unit_count.load())+" commands left in the queue!");
+		const int leftover = work_queue.count();
+
+		if(leftover>0)
+			log_error(std::string("shutting down with ")+std::to_string(leftover)+" commands left in the queue!");
 	}
 	catch(const DatabaseException &e){
 		log_error(e.what());
@@ -141,8 +132,8 @@ bool ChatService::is_connected()const{
 void ChatService::loop(){
 	while(working.load()){
 		// process work units
-		if(work_unit_count.load()>0){
-			const ChatWorkUnit *unit=get_work();
+		const ChatWorkUnit *unit = work_queue.pop_wait(200);
+		if(unit!=NULL){
 			switch(unit->type){
 			case WorkUnitType::CONNECT:
 				process_connect(*dynamic_cast<const ChatWorkUnitConnect*>(unit));
@@ -176,8 +167,6 @@ void ChatService::loop(){
 			// maybe send a heartbeat
 			heartbeat();
 		}
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(60));
 	}
 }
 
@@ -263,17 +252,6 @@ void ChatService::reconnect(){
 
 		log("reconnected successfully");
 	}catch(const ShutdownException &e){}
-}
-
-// get the first command in the list, then erase it from the list, the return it
-const ChatWorkUnit *ChatService::get_work(){
-	std::lock_guard<std::mutex> lock(mutex);
-
-	const ChatWorkUnit *unit=units.front();
-	units.pop();
-	--work_unit_count;
-
-	return unit;
 }
 
 // connect the client to server

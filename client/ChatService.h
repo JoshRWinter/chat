@@ -94,9 +94,7 @@ private:
 	std::string chatname; // subscribed chat
 	std::atomic<bool> working; // service thread currently running
 	std::atomic<bool> connected; // currently connected to server
-	std::atomic<int> work_unit_count; // atomically accessible version of units.size()
-	std::queue<const ChatWorkUnit*> units;
-	std::mutex mutex; // guards access to <units>
+	ChatWorkQueue work_queue;
 	time_t last_heartbeat;
 	std::thread handle;
 };
