@@ -81,6 +81,10 @@ std::string net::me(){
 	return hostname == "" ? "[undetermined]" : hostname;
 }
 
+net::tcp_server::tcp_server(){
+	scan = -1;
+}
+
 net::tcp_server::tcp_server(unsigned short port){
 	bind(port);
 }
@@ -94,17 +98,31 @@ net::tcp_server::operator bool()const{
 	return scan!=-1;
 }
 
-// BLOCKS and returns the connecting socket
-// returns -1 on failure
-int net::tcp_server::accept(){
-	if(scan==-1)
+// implements a timeout of <millis> milliseconds
+int net::tcp_server::accept(int millis){
+	if(scan == -1)
 		return -1;
 
 	sockaddr_in6 connector_addr;
 	socklen_t addr_len=sizeof(sockaddr_in6);
-	int sock=::accept(scan,(sockaddr*)&connector_addr,&addr_len);
 
-	return sock;
+	struct timeval timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = (long)millis * 1000;
+
+	fd_set set;
+	FD_ZERO(&set);
+	FD_SET(scan, &set);
+
+	const int ret = select(scan + 1, &set, NULL, NULL, &timeout);
+	if(ret < 0)
+		return -1;
+	else if(ret == 0)
+		return -1;
+	else if(FD_ISSET(scan, &set))
+		return ::accept(scan, (sockaddr*)&connector_addr, &addr_len);
+
+	return -1;
 }
 
 // cleanup

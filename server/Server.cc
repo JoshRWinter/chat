@@ -21,7 +21,7 @@ Server::~Server(){
 }
 
 void Server::accept(){
-	int connector=tcp.accept();
+	int connector=tcp.accept(1000);
 
 	if(connector!=-1){
 		// yay someone connected

@@ -30,14 +30,14 @@ namespace net{
 // tcp
 class tcp_server{
 public:
-	tcp_server() = default;
+	tcp_server();
 	tcp_server(unsigned short);
 	tcp_server(const tcp_server&)=delete;
 	~tcp_server();
 	tcp_server &operator=(const tcp_server&)=delete;
 	operator bool()const;
 	bool bind(unsigned short);
-	int accept();
+	int accept(int = 0);
 	void close();
 
 private:
