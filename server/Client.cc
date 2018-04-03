@@ -10,7 +10,8 @@ Client::Client(Server &p,int sockfd):
 	tcp(sockfd),
 	disconnected(false),
 	out_queue_len(0),
-	last_heartbeat(0),
+	last_sent_heartbeat(0),
+	last_received_heartbeat(time(NULL)),
 	name("anonymous"),
 	thread(std::ref(*this)) // start a separate event thread for this client (operator())
 {}
@@ -22,7 +23,7 @@ void Client::operator()(){
 	}catch(const NetworkException &e){
 		// ignore
 	}catch(const ShutdownException &e){
-		log(std::string("kicking ") + name);
+		log("kicking " + name);
 	}catch(const ClientKickException &e){
 		log_error(e.what());
 	}
@@ -106,7 +107,8 @@ void Client::loop(){
 		// empty the out queue
 		dispatch();
 
-		Server::sleep();
+		// check if the remote client has timed out
+		check_timeout();
 	}
 }
 
@@ -130,7 +132,7 @@ void Client::dispatch(){
 
 // recv commands from the client
 void Client::recv_command(){
-	if(tcp.peek()<sizeof(ClientCommand))
+	if(!tcp.poll_recv(350))
 		return;
 
 	ClientCommand type;
@@ -156,7 +158,7 @@ void Client::recv_command(){
 		clientcmd_get_file();
 		break;
 	case ClientCommand::HEARTBEAT:
-		// ignore
+		last_received_heartbeat = time(NULL);
 		break;
 	default:
 		// illegal
@@ -169,13 +171,23 @@ void Client::recv_command(){
 void Client::heartbeat(){
 	time_t current=time(NULL);
 
-	if(current<last_heartbeat) // user messed with system clock
-		last_heartbeat=0;
+	if(current<last_sent_heartbeat) // user messed with system clock
+		last_sent_heartbeat=0;
 
-	if(current-last_heartbeat>HEARTBEAT_FREQUENCY){
+	if(current-last_sent_heartbeat>HEARTBEAT_FREQUENCY){
 		servercmd_heartbeat();
-		last_heartbeat=current;
+		last_sent_heartbeat=current;
 	}
+}
+
+void Client::check_timeout(){
+	const time_t current = time(NULL);
+
+	if(current < last_received_heartbeat) // user messed with system clock
+		last_received_heartbeat = 0;
+
+	if(current - last_received_heartbeat > TIMEOUT_SECONDS)
+		throw NetworkException();
 }
 
 // subscribe the client to chat with name <name> and id <cid>

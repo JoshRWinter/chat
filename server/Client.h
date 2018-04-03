@@ -57,6 +57,7 @@ private:
 	void dispatch();
 	void recv_command();
 	void heartbeat();
+	void check_timeout();
 	bool subscribe(const std::string&);
 	std::string get_string();
 	void send_string(const std::string&);
@@ -85,7 +86,8 @@ private:
 	std::queue<Message> out_queue; // pending messages to be sent
 	std::atomic<int> out_queue_len; // lock free length of out_queue
 	std::mutex out_queue_lock; // guards access to <out_queue>
-	time_t last_heartbeat;
+	time_t last_sent_heartbeat;
+	time_t last_received_heartbeat;
 	std::string name; // client name
 	std::thread thread;
 	std::optional<Chat> subscribed; // current subscribed chat

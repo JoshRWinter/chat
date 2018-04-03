@@ -58,6 +58,7 @@ public:
 	bool target(const std::string &address,unsigned short);
 	bool connect();
 	bool connect(int);
+	bool poll_recv(int);
 	void send_block(const void*,unsigned);
 	void recv_block(void*,unsigned);
 	int send_nonblock(const void*,unsigned);

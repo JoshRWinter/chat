@@ -37,7 +37,6 @@ public:
 	std::vector<unsigned char> get_file(unsigned long long, const std::string&);
 	bool valid_table_name(const std::string&);
 	std::string validate_name(const Client&);
-	static void sleep();
 
 private:
 	void new_client(int);

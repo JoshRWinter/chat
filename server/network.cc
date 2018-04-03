@@ -366,6 +366,27 @@ bool net::tcp::connect(int seconds){
 	return result;
 }
 
+bool net::tcp::poll_recv(int millis){
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = millis * 1000;
+
+	fd_set set;
+	FD_ZERO(&set);
+	FD_SET(sock, &set);
+
+	const int result = select(sock + 1, &set, NULL, NULL, &tv);
+
+	if(result < 0){ // select error
+		this->close();
+		return false;
+	}
+	else if(result == 0) // timeout
+		return false;
+
+	return peek() > 0; // ready for reading if condition holds
+}
+
 // blocking send
 void net::tcp::send_block(const void *buffer,unsigned size){
 	if(sock==-1)
