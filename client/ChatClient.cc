@@ -41,8 +41,8 @@ void ChatClient::send(const std::string &text, std::function<void(bool,const std
 }
 
 // send an image
-void ChatClient::send_image(const std::string &filename, unsigned char *buffer, int size, std::function<void(bool,const std::string&)> fn){
-	auto unit=new ChatWorkUnitMessage(MessageType::IMAGE, filename, buffer, size, NULL, fn);
+void ChatClient::send_image(const std::string &filename, unsigned char *buffer, int size, std::atomic<int> &percent, std::function<void(bool,const std::string&)> fn){
+	auto unit=new ChatWorkUnitMessage(MessageType::IMAGE, filename, buffer, size, &percent, fn);
 	service.add_work(unit);
 }
 

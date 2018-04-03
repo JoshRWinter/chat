@@ -75,6 +75,8 @@ private:
 	void receipt_received(const Update*);
 	void file_received(const Update*);
 	void display_message(const Message&);
+	void disable_interface();
+	void enable_interface();
 	void accept_name();
 	void accept_session();
 	void slotImage();

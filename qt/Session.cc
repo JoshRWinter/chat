@@ -21,8 +21,7 @@ Session::Session(const std::string &name, const std::string &addr, const std::st
 		Update *event=new Update(Update::Type::MESSAGE_RECEIPT);
 		event->success=success;
 		event->errmsg=errmsg;
-		inputbox->setDisabled(false);
-		inputbox->setFocus();
+		enable_interface();
 
 		QCoreApplication::postEvent(this, event);
 	};
@@ -31,7 +30,7 @@ Session::Session(const std::string &name, const std::string &addr, const std::st
 		if(client.connected()){
 			client.send(inputbox->toPlainText().toStdString(), receipt);
 			inputbox->setText("");
-			inputbox->setDisabled(true);
+			disable_interface();
 		}
 	};
 
@@ -287,6 +286,19 @@ void Session::display_message(const Message &msg){
 	display->add(msg);
 }
 
+void Session::disable_interface(){
+	file->setEnabled(false);
+	image->setEnabled(false);
+	inputbox->setEnabled(false);
+}
+
+void Session::enable_interface(){
+	file->setEnabled(true);
+	image->setEnabled(true);
+	inputbox->setEnabled(true);
+	inputbox->setFocus();
+}
+
 // after user returns from DialogName
 void Session::accept_name(){
 	const auto [name, addr] = dname->get();
@@ -326,8 +338,10 @@ void Session::slotImage(){
 			return;
 		}
 
-		client.send_image(Session::truncate(list.at(0).toStdString()), buffer, size, receipt);
-		inputbox->setDisabled(true);
+		disable_interface();
+		client.send_image(Session::truncate(list.at(0).toStdString()), buffer, size, percent, receipt);
+		DialogProgress dlg(this, Session::truncate(list.at(0).toStdString()), percent, false);
+		dlg.exec();
 	}
 }
 
@@ -346,7 +360,7 @@ void Session::slotFile(){
 			return;
 		}
 
-		inputbox->setDisabled(true);
+		disable_interface();
 		client.send_file(Session::truncate(filename), buffer, size, percent, receipt);
 		DialogProgress dlg(this, Session::truncate(filename), percent, false);
 		dlg.exec();
