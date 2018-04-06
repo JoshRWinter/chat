@@ -6,6 +6,9 @@
 #include <exception>
 #include <vector>
 #include <functional>
+#include <unordered_map>
+
+#define SERVER_NAME_LENGTH 25 // characters
 
 class Database;
 
@@ -28,20 +31,31 @@ public:
 	explicit Database(const std::string&);
 	Database(const Database&)=delete;
 	~Database();
+
 	Database &operator=(const Database&)=delete;
-	std::string get_name();
-	std::vector<Chat> get_chats();
+
+	const std::string &get_name();
+	const std::vector<Chat> &get_chats();
 	void new_chat(const Chat&);
 	unsigned long long new_msg(const Chat&,const Message&);
-	std::vector<Message> get_messages_since(unsigned long long,const std::string&);
-	std::vector<unsigned char> get_file(unsigned long long, const std::string&);
-	bool valid_table_name(const std::string&);
+	std::vector<Message> get_messages_since(unsigned long long, int);
+	std::vector<unsigned char> get_file(unsigned long long, int);
 
 private:
-	bool exists(const std::string&)const;
-	static std::string escape_table_name(const std::string&);
+	void initialize();
+	sqlite3 *get(int) const;
+	void save();
 
-	sqlite3 *conn;
+	static bool exists(const std::string&);
+	static std::string gen_name();
+	static std::string serialize(const Chat&);
+	static Chat deserialize(const std::string&);
+	static int highest_id(const std::vector<Chat>&);
+
+	std::string unique_name;
+	std::vector<Chat> list;
+	std::unordered_map<int, sqlite3*> dbs;
+	const std::string &db_path;
 };
 
 #endif // DATABASE_H

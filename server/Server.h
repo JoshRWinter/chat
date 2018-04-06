@@ -31,11 +31,10 @@ public:
 	bool running()const;
 	const std::string &get_name();
 	std::vector<Chat> get_chats();
-	void new_chat(const Chat&);
+	bool new_chat(const Chat&);
 	void new_msg(const Chat&,Message&);
-	std::vector<Message> get_messages_since(unsigned long long,const std::string&);
-	std::vector<unsigned char> get_file(unsigned long long, const std::string&);
-	bool valid_table_name(const std::string&);
+	std::vector<Message> get_messages_since(unsigned long long, int);
+	std::vector<unsigned char> get_file(unsigned long long, int);
 	std::string validate_name(const Client&);
 
 private:

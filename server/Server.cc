@@ -57,7 +57,7 @@ std::vector<Chat> Server::get_chats(){
 }
 
 // create a new chat
-void Server::new_chat(const Chat &chat){
+bool Server::new_chat(const Chat &chat){
 	std::lock_guard<std::mutex> lock(mutex);
 
 	try{
@@ -65,9 +65,11 @@ void Server::new_chat(const Chat &chat){
 		log(chat.creator + " has created a new chat: \"" + chat.name + "\" description: \"" + chat.description + "\"");
 	}catch(const DatabaseException &e){
 		log_error(e.what());
+		return false;
 	}
 
 	chats=db.get_chats();
+	return true;
 }
 
 void Server::new_msg(const Chat &chat,Message &msg){
@@ -96,19 +98,17 @@ void Server::new_msg(const Chat &chat,Message &msg){
 	}
 }
 
-std::vector<Message> Server::get_messages_since(unsigned long long id,const std::string &name){
+std::vector<Message> Server::get_messages_since(unsigned long long id, int chatid){
 	std::lock_guard<std::mutex> lock(mutex);
 
-	return db.get_messages_since(id,name);
+	return db.get_messages_since(id, chatid);
 }
 
 // get and return file contents from the database
-std::vector<unsigned char> Server::get_file(unsigned long long id, const std::string &chatname){
-	return db.get_file(id, chatname);
-}
+std::vector<unsigned char> Server::get_file(unsigned long long id, int chatid){
+	std::lock_guard<std::mutex> lock(mutex);
 
-bool Server::valid_table_name(const std::string &name){
-	return db.valid_table_name(name);
+	return db.get_file(id, chatid);
 }
 
 // validate a client's name

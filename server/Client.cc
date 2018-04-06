@@ -257,6 +257,16 @@ std::string Client::format(int bytes){
 	return buffer;
 }
 
+std::string Client::strip_new_lines(const std::string &str){
+	std::string line = str;
+
+	for(char &c : line)
+		if(c == '\n' || c == '\r')
+			c = ' ';
+
+	return line;
+}
+
 // lists the chats
 // implements ClientCommand::LIST_CHATS
 void Client::clientcmd_list_chats(){
@@ -270,23 +280,16 @@ void Client::clientcmd_list_chats(){
 // implements ClientCommand::NEW_CHAT
 void Client::clientcmd_newchat(){
 	// recv the name of the chat
-	std::string name=get_string();
+	const std::string name=Client::strip_new_lines(get_string());
 
 	// recv the creator of the chat
-	const std::string creator=get_string();
+	const std::string creator=Client::strip_new_lines(get_string());
 
 	// recv the description
-	const std::string description=get_string();
-
-	// validate the table name
-	bool valid=parent.valid_table_name(name);
-
-	// tell the client
-	servercmd_new_chat(valid);
+	const std::string description=Client::strip_new_lines(get_string());
 
 	// create the new chat
-	if(valid)
-		parent.new_chat({0,name,creator,description});
+	servercmd_new_chat(parent.new_chat({0,name,creator,description}));
 }
 
 // allow the client to subscribe to a chat
@@ -386,7 +389,7 @@ void Client::clientcmd_get_file(){
 	std::uint64_t id;
 	recv(&id, sizeof(id));
 
-	std::vector<unsigned char> buffer=parent.get_file(id, subscribed.value().name);
+	std::vector<unsigned char> buffer=parent.get_file(id, subscribed.value().id);
 	servercmd_send_file(buffer);
 }
 
@@ -445,7 +448,7 @@ void Client::servercmd_subscribe(bool success,unsigned long long max){
 
 	// send all messages in the chat where message.id > max
 	// basically getting the client back up to date since they were last connected
-	std::vector<Message> since=parent.get_messages_since(max,subscribed.value().name);
+	std::vector<Message> since=parent.get_messages_since(max,subscribed.value().id);
 
 	// send the count
 	std::uint64_t count=since.size();

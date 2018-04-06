@@ -3,7 +3,7 @@ LFLAGS := -pthread -lsqlite3
 COMPILER := g++
 REMOVE := rm -f
 
-OBJECTS := network.o log.o main.o Server.o Client.o Database.o
+OBJECTS := network.o log.o main.o Server.o Client.o Database.o os.o
 
 chat-server: $(OBJECTS)
 	$(COMPILER) -o $@ $(OBJECTS) $(LFLAGS)

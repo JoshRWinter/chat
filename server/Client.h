@@ -62,6 +62,7 @@ private:
 	std::string get_string();
 	void send_string(const std::string&);
 	static std::string format(int);
+	static std::string strip_new_lines(const std::string&);
 
 	// net commands implementing ClientCommand::*
 	void clientcmd_introduce();
