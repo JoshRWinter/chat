@@ -249,7 +249,7 @@ void Database::initialize(){
 				throw DatabaseException("Error when initializing sqlite3 database for name:" + chat.name + ", id:" + std::to_string(chat.id) + ", reason:" + errmsg);
 			}
 
-			dbs.insert({chat.id, connection});
+			dbs.insert({(int)chat.id, connection});
 			list.push_back(chat);
 		}
 	}
