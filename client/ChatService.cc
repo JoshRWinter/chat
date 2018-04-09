@@ -43,7 +43,7 @@ void ChatService::operator()(){
 		if(leftover>0)
 			log_error(std::string("shutting down with ")+std::to_string(leftover)+" commands left in the queue!");
 	}
-	catch(const DatabaseException &e){
+	catch(const lite3::exception &e){
 		log_error(e.what());
 		// recurse
 		this->operator()();
@@ -302,9 +302,6 @@ void ChatService::process_newchat(const ChatWorkUnitNewChat &unit){
 
 // subscribe to a chat
 void ChatService::process_subscribe(const ChatWorkUnitSubscribe &unit){
-	// enter the chat into the database
-	db.newchat(unit.name);
-
 	callback.subscribe=unit.callback;
 	callback.message=unit.msg_callback;
 	clientcmd_subscribe(unit.name,db.get_latest_msg(unit.name));

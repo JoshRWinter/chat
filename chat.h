@@ -8,6 +8,7 @@
 #include <string.h>
 
 #define CHAT_PORT 28859
+#define SERVER_NAME_LENGTH 25
 
 #define HEARTBEAT_FREQUENCY 7
 #define TIMEOUT_SECONDS (HEARTBEAT_FREQUENCY * 3)
