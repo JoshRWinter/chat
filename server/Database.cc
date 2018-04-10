@@ -290,7 +290,7 @@ std::string Database::gen_name(){
 
 	char servername[SERVER_NAME_LENGTH + 1];
 	for(int i=0;i<SERVER_NAME_LENGTH;++i){
-		const char c='A'+(std::rand()%26);
+		const char c='!'+(std::rand()%94);
 		servername[i]=c;
 	}
 
