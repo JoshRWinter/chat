@@ -13,10 +13,10 @@ class Database{
 public:
 	explicit Database(const std::string&);
 	Database(const Database&)=delete;
+
 	Database &operator=(const Database&)=delete;
+
 	void set_servername(const std::string&);
-	bool chat_exists(const std::string&);
-	void newchat(const std::string&);
 	void newmsg(const Message&,const std::string&);
 	std::vector<Message> get_msgs(const std::string&);
 	int get_latest_msg(const std::string&);
