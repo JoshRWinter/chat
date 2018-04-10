@@ -22,8 +22,13 @@ public:
 	int get_latest_msg(const std::string&);
 
 private:
+	void log_chat(const std::string&);
+	void regulate();
+	void remove(const std::string&, const std::string&);
+
 	static std::string escape_table_name(const std::string&);
 	static bool file_exists(const std::string&);
+	static bool stale(int);
 
 	std::string servername;
 	lite3::connection db;

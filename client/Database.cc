@@ -11,6 +11,15 @@ Database::Database(const std::string &dbpath){
 	db.open(dbpath);
 
 	if(create){
+		db.begin();
+
+		const std::string create_chats_table =
+		"create table chats ("
+		"chatname text not null,"
+		"servername text not null,"
+		"last_login int not null" // unix time stamp
+		");";
+
 		const std::string create_messages_table =
 		"create table messages ("
 		"servername text not null," // the name of the server this messages belongs to
@@ -23,7 +32,18 @@ Database::Database(const std::string &dbpath){
 		"raw blob" // any raw component (image, file)
 		");";
 
-		db.execute(create_messages_table);
+		try
+		{
+			db.execute(create_messages_table);
+			db.execute(create_chats_table);
+		}
+		catch(const lite3::exception &e)
+		{
+			db.rollback();
+			throw;
+		}
+
+		db.commit();
 	}
 }
 
@@ -57,6 +77,11 @@ void Database::newmsg(const Message &msg, const std::string &chatname){
 std::vector<Message> Database::get_msgs(const std::string &chatname){
 	if(servername=="")
 		throw std::runtime_error(DB_ERRMSG("server name is not set!"));
+
+	// first, log the current chat name and server name into table "chats" if it doesn't already exist
+	log_chat(chatname);
+	// now allow the database to regulate its own size
+	regulate();
 
 	const std::string query =
 	"select * from messages "
@@ -111,8 +136,104 @@ int Database::get_latest_msg(const std::string &chatname){
 		return statement.integer(0);
 }
 
+// insert <chatname> into the chats table if it doesn't already exist,
+// and update its last_login timestamp if it does
+void Database::log_chat(const std::string &chatname)
+{
+	const std::string query =
+	"select * from chats where chatname=? and servername=?;";
+	lite3::statement statement(db, query);
+
+	statement.bind(1, chatname);
+	statement.bind(2, servername);
+
+	const bool exists = statement.execute();
+	if(exists && statement.execute())
+		throw std::runtime_error("more that one entry in chats table for chatname \"" + chatname + "\" and servername \"" + servername + "\"");
+
+	if(!exists)
+	{
+		// insert it
+		const std::string insert =
+		"insert into chats values (?, ?, ?);";
+		lite3::statement inserter(db, insert);
+
+		inserter.bind(1, chatname);
+		inserter.bind(2, servername);
+		inserter.bind(3, time(NULL));
+
+		inserter.execute();
+	}
+	else
+	{
+		// update its last_login timestamp
+		const std::string alter =
+		"update chats set last_login=? where chatname=? and servername=?;";
+		lite3::statement alterer(db, alter);
+
+		alterer.bind(1, time(NULL));
+		alterer.bind(2, chatname);
+		alterer.bind(3, servername);
+
+		alterer.execute();
+	}
+}
+
+// determine which chats haven't been logged into in a while
+// using (Database::stale(...))
+void Database::regulate()
+{
+	const std::string query =
+	"select * from chats;";
+	lite3::statement statement(db, query);
+
+	while(statement.execute())
+	{
+		const std::string chatname = statement.str(0);
+		const std::string server = statement.str(1);
+		const int unixtime = statement.integer(2);
+
+		if(Database::stale(unixtime))
+			remove(chatname, server);
+	}
+}
+
+// remove all messages from chatname and servername, and the entry from the chats table
+void Database::remove(const std::string &chatname, const std::string &server)
+{
+	log("deleting all messages from chatname: \"" + chatname + "\", servername: \"" + server + "\"");
+	// first remove all the appropriate messages
+	const std::string sql =
+	"delete from messages where chatname=? and servername=?;";
+	lite3::statement s1(db, sql);
+
+	s1.bind(1, chatname);
+	s1.bind(2, server);
+
+	s1.execute();
+
+	// remove the entry from the chats table
+	const std::string sql2 =
+	"delete from chats where chatname=? and servername=?";
+	lite3::statement s2(db, sql2);
+
+	s2.bind(1, chatname);
+	s2.bind(2, server);
+
+	s2.execute();
+}
+
 // see if file exists
 bool Database::file_exists(const std::string &dbpath){
 	std::ifstream ifs(dbpath);
 	return !!ifs;
+}
+
+bool Database::stale(int unixtime)
+{
+	const int now = time(NULL);
+
+	const int stale_seconds = 2592000; // seconds in a month
+
+	return now - unixtime > stale_seconds;
 }
