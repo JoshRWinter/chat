@@ -63,7 +63,7 @@ bool Server::new_chat(const Chat &chat){
 	try{
 		db.new_chat(chat);
 		log(chat.creator + " has created a new chat: \"" + chat.name + "\" description: \"" + chat.description + "\"");
-	}catch(const DatabaseException &e){
+	}catch(const std::exception &e){
 		log_error(e.what());
 		return false;
 	}
@@ -78,7 +78,7 @@ void Server::new_msg(const Chat &chat,Message &msg){
 	// insert into the database
 	try{
 		msg.id=db.new_msg(chat,msg);
-	}catch(const DatabaseException &e){
+	}catch(const std::exception &e){
 		log_error(e.what());
 		return;
 	}

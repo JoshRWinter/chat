@@ -31,7 +31,7 @@ Database::Database(const std::string &dbpath)
 		std::ifstream masterfile(master_file_path);
 		std::getline(masterfile, unique_name);
 		if(unique_name.size() != 25)
-			throw DatabaseException("Error, server name not 25 characters");
+			throw std::runtime_error("Error, server name not 25 characters");
 	}
 
 	// create the directory file
@@ -42,11 +42,6 @@ Database::Database(const std::string &dbpath)
 
 	// populate the chat list and dbs map
 	initialize();
-}
-
-Database::~Database(){
-	for(const auto &item : dbs)
-		sqlite3_close(item.second);
 }
 
 // get the name of the server
@@ -63,17 +58,10 @@ const std::vector<Chat> &Database::get_chats(){
 void Database::new_chat(const Chat &chat){
 	const int id = Database::highest_id(list) + 1;
 	const std::string &path = (db_path + "/" + std::to_string(id));
-	sqlite3 *connection = NULL;
-
-	if(sqlite3_open(path.c_str(), &connection)){
-		const std::string errormsg(sqlite3_errmsg(connection));
-		sqlite3_close(connection);
-		throw DatabaseException("Error when creating new chat database (\"" + chat.name + "\"): \"" + errormsg + "\"");
-	}
+	lite3::connection conn(path);
 
 	// create the messages table
-	char *errormsg = NULL;
-	const char *create_table =
+	const std::string create_table =
 	"create table messages (\n"
 	"id integer primary key autoincrement,\n"
 	"type int not null,\n" // MessageType enum in chat.h
@@ -82,147 +70,107 @@ void Database::new_chat(const Chat &chat){
 	"name varchar(511) not null,\n"
 	"raw blob);"; // reserved for file content, image content, will be null for normal messages
 
-	if(sqlite3_exec(connection, create_table, NULL, NULL, &errormsg)){
-		const std::string err(errormsg);
-		sqlite3_free(errormsg);
-		throw DatabaseException("Error when creating messages table (\"" + chat.name + "\"): \"" + err + "\"");
-	}
+	conn.execute(create_table);
 
 	list.emplace_back(id, chat.name, chat.creator, chat.description);
-	dbs.insert({id, connection});
+	dbs.emplace(id, std::move(conn));
 
 	save();
 }
 
 // insert a new message into database
 unsigned long long Database::new_msg(const Chat &chat,const Message &msg){
-	sqlite3 *const conn = get(chat.id);
+	lite3::connection &conn = get(chat.id);
 
-	std::string insert=std::string("")+
+	const std::string insert =
 	"insert into messages (type,unixtime,message,name,raw) values\n"
 	"(?,?,?,?,?);";
 
-	sqlite3_stmt *statement;
-	sqlite3_prepare_v2(conn,insert.c_str(),-1,&statement,NULL);
+	lite3::statement statement(conn, insert);
 
-	sqlite3_bind_int(statement,1,static_cast<int>(msg.type));
-	sqlite3_bind_int(statement,2,msg.unixtime);
-	sqlite3_bind_text(statement,3,msg.msg.c_str(),-1,SQLITE_TRANSIENT);
-	sqlite3_bind_text(statement,4,msg.sender.c_str(),-1,SQLITE_TRANSIENT);
-	sqlite3_bind_blob(statement,5,msg.raw,msg.raw_size,SQLITE_TRANSIENT);
+	statement.bind(1, static_cast<int>(msg.type));
+	statement.bind(2, msg.unixtime);
+	statement.bind(3, msg.msg);
+	statement.bind(4, msg.sender);
+	statement.bind(5, msg.raw, msg.raw_size);
 
-	if(sqlite3_step(statement)!=SQLITE_DONE){
-		sqlite3_finalize(statement);
-		throw DatabaseException(sqlite3_errmsg(conn));
-	}
-
-	sqlite3_finalize(statement);
+	statement.execute();
 
 	// get id of last inserted item
-	const std::string query=std::string("")+
+	const std::string query =
 	"select max(id) from messages;";
-	sqlite3_prepare_v2(conn,query.c_str(),-1,&statement,NULL);
+	lite3::statement maxid(conn, query);
 
-	if(sqlite3_step(statement)!=SQLITE_ROW){
-		sqlite3_finalize(statement);
-		throw DatabaseException(sqlite3_errmsg(conn));
-	}
-
-	unsigned id=sqlite3_column_int(statement,0);
-
-	sqlite3_finalize(statement);
-
-	return id;
+	maxid.execute();
+	return maxid.integer(0);
 }
 
 // get all messages from chat <name> where id is bigger than <since>
 std::vector<Message> Database::get_messages_since(unsigned long long since, int chatid){
-	sqlite3 *const conn = get(chatid);
+	lite3::connection &conn = get(chatid);
 
-	const std::string query=std::string("")+
+	const std::string query =
 	"select * from messages where id > ?;";
+	lite3::statement statement(conn, query);
 
-	sqlite3_stmt *statement;
-	sqlite3_prepare_v2(conn,query.c_str(),-1,&statement,NULL);
-
-	sqlite3_bind_int64(statement,1,since);
+	statement.bind(1, (std::int64_t)since);
 
 	std::vector<Message> messages;
-	int rc;
-	while((rc=sqlite3_step(statement))!=SQLITE_DONE){
-		if(rc!=SQLITE_ROW){
-			sqlite3_finalize(statement);
-			throw DatabaseException(sqlite3_errmsg(conn));
-		}
-
+	while(statement.execute()){
 		// blob only needs to be retrieved if the Message type is IMAGE
-		const MessageType type=(MessageType)sqlite3_column_int(statement, 1);
-		bool getblob=type==MessageType::IMAGE;
+		const MessageType type = (MessageType)statement.integer(1);
 
 		unsigned char *raw=NULL;
 		int raw_size=0;
-		if(getblob){
+		if(type == MessageType::IMAGE){
 			// get the blob first
-			raw_size=sqlite3_column_bytes(statement,5);
-			const unsigned char *r=(unsigned char*)sqlite3_column_blob(statement,5);
-			if(r!=NULL){
+			raw_size = statement.blob_size(5);
+			const unsigned char *const r = (unsigned char*)statement.blob(5);
+			if(r != NULL){
+				// must copy it from sqlite's memory
 				raw=new unsigned char[raw_size];
-				memcpy(raw,r,raw_size);
+				memcpy(raw, r, raw_size);
 			}
 		}
 
 		messages.push_back({
-			(decltype(Message::id))sqlite3_column_int(statement,0),
+			(decltype(Message::id))statement.integer(0),
 			type,
-			sqlite3_column_int(statement,2),
-			(char*)sqlite3_column_text(statement,3),
-			(char*)sqlite3_column_text(statement,4),
+			statement.integer(2),
+			statement.str(3),
+			statement.str(4),
 			raw,
 			(decltype(Message::raw_size))raw_size
 		});
 	}
-
-	sqlite3_finalize(statement);
 
 	return messages;
 }
 
 // get a file and return it
 std::vector<unsigned char> Database::get_file(unsigned long long id, int chatid){
-	sqlite3 *const conn = get(chatid);
+	lite3::connection &conn = get(chatid);
 
-	const std::string query=std::string("")+
+	const std::string query =
 	"select raw from messages where id=?;";
+	lite3::statement statement(conn, query);
 
-	sqlite3_stmt *statement;
-	sqlite3_prepare_v2(conn, query.c_str(), -1, &statement, NULL);
+	statement.bind(1, (std::int64_t)id);
 
-	sqlite3_bind_int64(statement, 1, id);
+	std::vector<unsigned char> raw;
+	if(statement.execute()){
+		raw.resize(statement.blob_size(0));
+		const unsigned char *const r = (unsigned char*)statement.blob(0);
 
-	unsigned char *raw=NULL;
-	int raw_size=0;
-	int rc;
-	if((rc=sqlite3_step(statement))==SQLITE_ROW){
-
-		raw_size=sqlite3_column_bytes(statement, 0);
-		const unsigned char *r=(unsigned char*)sqlite3_column_blob(statement, 0);
-		if(r!=NULL){
-			raw=new unsigned char[raw_size];
-			memcpy(raw, r, raw_size);
-		}
+		if(r != NULL)
+			memcpy(raw.data(), r, raw.size());
+		else
+			throw std::runtime_error("raw blob for file id " + std::to_string(id) + ", chatid " + std::to_string(chatid));
 	}
-	else{
-		sqlite3_finalize(statement);
-		throw DatabaseException(sqlite3_errmsg(conn));
-	}
+	else
+		throw std::runtime_error("no record for message id " + std::to_string(id) + ", chatid " + std::to_string(chatid));
 
-	sqlite3_finalize(statement);
-
-	std::vector<unsigned char> buffer(raw_size);
-	memcpy(&buffer[0], raw, raw_size);
-	delete[] raw;
-
-	return buffer;
+	return raw;
 }
 
 // read the directory file, populate the <list>, and init the sqlite3 dbs
@@ -242,14 +190,9 @@ void Database::initialize(){
 			}
 
 			// initialize the sqlite3 connection
-			sqlite3 *connection;
-			if(sqlite3_open((db_path + "/" + std::to_string(chat.id)).c_str(), &connection)){
-				const std::string errmsg(sqlite3_errmsg(connection));
-				sqlite3_close(connection);
-				throw DatabaseException("Error when initializing sqlite3 database for name:" + chat.name + ", id:" + std::to_string(chat.id) + ", reason:" + errmsg);
-			}
+			lite3::connection connection(db_path + "/" + std::to_string(chat.id));
 
-			dbs.insert({(int)chat.id, connection});
+			dbs.emplace(chat.id, std::move(connection));
 			list.push_back(chat);
 		}
 	}
@@ -258,11 +201,11 @@ void Database::initialize(){
 		save();
 }
 
-sqlite3 *Database::get(int id)const{
-	std::unordered_map<int, sqlite3*>::const_iterator it = dbs.find(id);
+lite3::connection &Database::get(int id){
+	std::unordered_map<int, lite3::connection>::iterator it = dbs.find(id);
 
 	if(it == dbs.end())
-		throw DatabaseException("Could not find sqlite database for chat id " + std::to_string(id));
+		throw std::runtime_error("Could not find sqlite database for chat id " + std::to_string(id));
 	return (*it).second;
 }
 
@@ -275,7 +218,7 @@ void Database::save(){
 
 	std::ofstream out(db_path + "/directory");
 	if(!out)
-		throw DatabaseException("Error when writing to directory file");
+		throw std::runtime_error("Error when writing to directory file");
 
 	out << contents;
 }
@@ -319,23 +262,23 @@ Chat Database::deserialize(const std::string &entry){
 
 	const std::optional<std::string> id_string = csv.next();
 	if(!id_string)
-		throw DatabaseException("no id field in entry \"" + entry + "\"");
+		throw std::runtime_error("no id field in entry \"" + entry + "\"");
 
 	const std::optional<std::string> name = csv.next();
 	if(!name)
-		throw DatabaseException("no name field in entry \"" + entry + "\"");
+		throw std::runtime_error("no name field in entry \"" + entry + "\"");
 
 	const std::optional<std::string> creator = csv.next();
 	if(!creator)
-		throw DatabaseException("no creator field in entry \"" + entry + "\"");
+		throw std::runtime_error("no creator field in entry \"" + entry + "\"");
 
 	const std::optional<std::string> description = csv.next();
 	if(!description)
-		throw DatabaseException("no description field in entry \"" + entry + "\"");
+		throw std::runtime_error("no description field in entry \"" + entry + "\"");
 
 	int id = 0;
 	if(1 != sscanf(id_string.value().c_str(), "%d", &id))
-		throw DatabaseException("expected a number: " + id_string.value());
+		throw std::runtime_error("expected a number: " + id_string.value());
 	return {(unsigned long long)id, name.value(), creator.value(), description.value()};
 }
 

@@ -12,25 +12,13 @@
 
 class Database;
 
-#include "../sqlite3.h"
+#include "lite3.hpp"
 #include "../chat.h"
-
-class DatabaseException:public std::exception{
-public:
-	explicit DatabaseException(const std::string &m="unknown database error")
-	:msg(std::string("database error: ")+m){}
-	const char *what()const noexcept{
-		return msg.c_str();
-	}
-private:
-	std::string msg;
-};
 
 class Database{
 public:
 	explicit Database(const std::string&);
 	Database(const Database&)=delete;
-	~Database();
 
 	Database &operator=(const Database&)=delete;
 
@@ -43,7 +31,7 @@ public:
 
 private:
 	void initialize();
-	sqlite3 *get(int) const;
+	lite3::connection &get(int);
 	void save();
 
 	static bool exists(const std::string&);
@@ -54,7 +42,7 @@ private:
 
 	std::string unique_name;
 	std::vector<Chat> list;
-	std::unordered_map<int, sqlite3*> dbs;
+	std::unordered_map<int, lite3::connection> dbs;
 	const std::string &db_path;
 };
 
